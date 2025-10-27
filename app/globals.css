@@ -66,6 +66,16 @@
   background: #9b59b6;
 }
 
+/* Hide scrollbar for drag-to-scroll elements */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Starfield effect */
 .star {
   position: absolute;
@@ -410,7 +420,7 @@
 
 /* Section backgrounds */
 .hero-bg {
-  background: linear-gradient(to bottom, #0a0520 0%, #1a0f3a 50%, #1a1540 100%);
+  background: linear-gradient(to bottom, #0a0520 0%, #080418 25%, #060310 50%, #040208 75%, #000000 100%);
 }
 
 .about-bg {
@@ -418,7 +428,7 @@
 }
 
 .education-bg {
-  background: linear-gradient(to bottom, #12102d 0%, #12102d 20%, #0a0520 100%);
+  background: linear-gradient(to bottom, #0a0520 0%, #0a0520 20%, #050210 50%, #000000 100%);
 }
 
 .projects-bg {

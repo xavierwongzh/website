@@ -14,13 +14,18 @@ export function MouseGlow() {
   const lastScrollY = useRef(0);
 
   useEffect(() => {
+    const isModalOpen = () => {
+      return document.body.hasAttribute('data-modal-open');
+    };
+
     const handleMouseMove = (e: MouseEvent) => {
       mousePos.current = { x: e.clientX, y: e.clientY };
       lastMouseMove.current = Date.now();
       isMouseMoving.current = true;
       
       if (fireflyRef.current) {
-        fireflyRef.current.style.opacity = "1";
+        // Dim firefly when modal is open
+        fireflyRef.current.style.opacity = isModalOpen() ? "0.2" : "1";
       }
     };
 
@@ -120,6 +125,7 @@ export function MouseGlow() {
 
       // Flickering effect
       const flicker = 0.85 + Math.sin(Date.now() * 0.008) * 0.15;
+      const modalOpen = isModalOpen();
 
       if (fireflyRef.current) {
         // Allow firefly to go beyond viewport boundaries
@@ -137,7 +143,8 @@ export function MouseGlow() {
         if (isOutOfView && !isMouseMoving.current) {
           fireflyRef.current.style.opacity = "0";
         } else {
-          fireflyRef.current.style.opacity = `${flicker}`;
+          // Dim firefly when modal is open
+          fireflyRef.current.style.opacity = modalOpen ? "0.2" : `${flicker}`;
         }
       }
 
