@@ -8,7 +8,7 @@ const educationData: Education[] = [
   {
     id: "1",
     year: "Sep 2022 – May 2026",
-    title: "Bachelor of Engineering – Engineering Systems and Design",
+    title: "Bachelor of Engineering\nEngineering Systems and Design",
     institution: "Singapore University of Technology and Design (SUTD)",
     specializations: [
       "Business Analytics & Operations Research",
@@ -28,7 +28,7 @@ const educationData: Education[] = [
   {
     id: "2",
     year: "Apr 2017 – Mar 2020",
-    title: "Diploma – Mechatronics Engineering (Merit)",
+    title: "Diploma\nMechatronics Engineering (Merit)",
     institution: "Temasek Polytechnic",
     minors: [
       "Psychology (Diploma Plus)"
