@@ -103,6 +103,29 @@ const projects: Project[] = [
     ],
     outcomes: ["Improved visibility for stock replenishment and BOM planning decisions"],
   },
+  {
+    id: "6",
+    featured: true,
+    mark: "GENAI",
+    title: "ReVine\nAI meme-to-video generation platform",
+    description:
+      "AI web app that generates personalized Vine memes by inserting a user’s face using reference-to-video generation models.",
+    detailedDescription:
+      "Built during the Cursor Hackathon Singapore, ReVine is a full-stack web application that lets users upload a face image and generate personalized meme videos based on classic Vine templates. The system orchestrates multiple AI tools for research, prompting, and rapid prototyping, and integrates video generation models hosted on fal with a Supabase backend (storage + authentication) and a fast UI built using Vercel v0. ReVine won 2nd place at the Cursor Hackathon Singapore (fal track) among 500+ participants.",
+    duration: "Oct 2025",
+    role: "Full-stack / AI application development",
+    tags: ["Generative AI", "Video Generation", "Prompt Engineering", "fal", "Supabase", "Vercel v0"],
+    features: [
+      "Upload a face reference image and generate a meme video",
+      "Reference-to-video generation workflow with prompt iteration",
+      "Supabase-backed authentication and media storage",
+      "Hackathon-first rapid prototyping and deployment pipeline",
+    ],
+    outcomes: [
+      "2nd place — Cursor Hackathon Singapore (fal track)",
+      "Demonstrated orchestration of AI tools + full-stack delivery under hackathon constraints",
+    ],
+  },
 ];
 
 export function Projects() {
