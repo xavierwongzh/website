@@ -34,10 +34,10 @@ const projects: Project[] = [
     id: "2",
     featured: true,
     mark: "SIM",
-    title: "Runway & surface ops sim",
+    title: "Runway Operations Simulation",
     subtitle: "San Diego Intl (KSAN)",
     description:
-      "CAST-based runway + surface operations simulation using Flightradar24 demand scenarios to study throughput, delays, and bottlenecks.",
+      "CAST-based runway + surface simulation using Flightradar24 demand scenarios to study throughput, delays, and bottlenecks.",
     detailedDescription:
       "Conducted a systems-level analysis of runway capacity and surface operations at San Diego International Airport (KSAN). I processed flight movement data (Flightradar24) to generate realistic demand scenarios and traffic profiles, then evaluated operational strategies in CAST (e.g., taxiway restrictions, departure queue management, runway exit configurations, and adaptive arrival separation). The study compared theoretical runway capacity against simulated performance and identified bottlenecks such as taxiway geometry, apron congestion, and pushback queues.",
     duration: "Sep 2025 – Dec 2025",
