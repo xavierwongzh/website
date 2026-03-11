@@ -56,7 +56,7 @@ const projects: Project[] = [
     featured: true,
     mark: "ABM",
     title: "Pump Protocol",
-    subtitle: "Agent-based simulation for petrol station operations",
+    subtitle: "Agent-based simulation for petrol station ops",
     description:
       "Interactive simulation to test station configurations and optimize throughput/profitability.",
     detailedDescription:
@@ -75,7 +75,7 @@ const projects: Project[] = [
     id: "4",
     mark: "QSYS",
     title: "Queue Optima",
-    subtitle: "Queueing theory analysis for airport immigration",
+    subtitle: "Queueing theory for airport immigration",
     description:
       "M/M/k model to compare queue policies and counter allocations for waiting time + fairness.",
     detailedDescription:
