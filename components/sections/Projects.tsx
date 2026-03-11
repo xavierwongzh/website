@@ -33,8 +33,8 @@ const projects: Project[] = [
     id: "2",
     featured: true,
     mark: "SIM",
-    title: "San Diego Intl (KSAN)",
-    subtitle: "Runway capacity & surface operations simulation",
+    title: "Runway capacity & surface operations simulation",
+    subtitle: "San Diego Intl (KSAN)",
     description:
       "Systems-level runway + ground ops analysis using CAST with realistic demand scenarios.",
     detailedDescription:
