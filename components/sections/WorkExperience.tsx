@@ -31,7 +31,7 @@ const workData: WorkExperience[] = [
   {
     id: "2",
     year: "Sep 2023 – Dec 2023",
-    title: "Undergrad TA\n10.013 Modelling and Analysis (Calculus 1)",
+    title: "Undergraduate Teaching Assistant\n10.013 Modelling and Analysis (Calculus 1)",
     company: "Singapore University of Technology and Design (SUTD)",
     location: "Singapore",
     description: "Assisted professors in teaching students university-level Mathematics, \nfostering mathematical modeling and problem-solving skills",

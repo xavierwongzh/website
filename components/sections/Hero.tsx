@@ -58,11 +58,10 @@ export function Hero() {
         </h1>
         <div className="text-lg md:text-xl text-purple-100/85 font-light animate-fade-in-up animation-delay-500 mb-10 max-w-3xl mx-auto">
           <p className="mb-4">
-            Engineering Systems undergraduate at SUTD focused on aviation operations,
-            optimization (OR/MILP), simulation, and data analytics.
+            Engineering Systems and Design graduate at SUTD specialising in <br />aviation systems, operations research and optimization-driven decision systems.
           </p>
           <div className="flex flex-wrap justify-center gap-2 text-sm">
-            {["Aviation Systems", "Operations Research", "Optimization", "Simulation", "Analytics"].map((tag) => (
+            {["Aviation Systems", "Operations Research", "Optimization", "Data Analytics", "Artificial Intelligence"].map((tag) => (
               <span
                 key={tag}
                 className="px-3 py-1 rounded-full bg-black/40 border border-fuchsia-500/30 text-fuchsia-200/90"
