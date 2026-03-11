@@ -33,7 +33,7 @@ const projects: Project[] = [
     id: "2",
     featured: true,
     mark: "SIM",
-    title: "Runway capacity & surface operations simulation",
+    title: "Runway & surface ops simulation",
     subtitle: "San Diego Intl (KSAN)",
     description:
       "Systems-level runway + ground ops analysis using CAST with realistic demand scenarios.",
@@ -293,7 +293,7 @@ export function Projects() {
                     </div>
                   )}
                 </div>
-                <h3 className="text-xl font-semibold text-fuchsia-200 mb-1">
+                <h3 className="text-xl font-semibold text-fuchsia-200 mb-1 truncate">
                   {project.title}
                 </h3>
                 {project.subtitle && (
@@ -344,7 +344,7 @@ export function Projects() {
                   </div>
                 )}
               </div>
-              <h3 className="text-xl font-semibold text-fuchsia-200 mb-1">
+              <h3 className="text-xl font-semibold text-fuchsia-200 mb-1 truncate">
                 {project.title}
               </h3>
               {project.subtitle && (
