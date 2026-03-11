@@ -101,7 +101,7 @@ const projects: Project[] = [
       "Collaborated with Tai Sin Electric Limited to build a data-driven inventory forecasting and BOM planning approach. I analyzed transactional and product datasets to identify demand patterns and seasonality, then developed Power BI dashboards to track inventory health, demand trends, and operational KPIs to support faster procurement and production decisions.",
     duration: "Jan 2024 – Apr 2024",
     role: "Data Analytics / BI",
-    tags: ["Power BI", "DAX", "Data Analysis", "Forecasting"],
+    tags: ["Power BI", "DAX", "Data Analysis", "Forecasting", "Business Analytics"],
     features: [
       "Interactive dashboards for inventory performance and demand trends",
       "KPI definitions aligned to stakeholder decision-making",
@@ -166,7 +166,7 @@ const projects: Project[] = [
       "Zenpresso Excelsa is a visionary reinterpretation of the Nespresso Pixie that blends industrial design with generative AI. Using Rhinoceros 7 for 3D modelling and Stable Diffusion with ControlNet, we explored bold conceptual forms and rapidly iterated from sketches to detailed 3D representations. The project showcases how human design intent and AI-assisted exploration can be combined to accelerate creative concept development.",
     duration: "Sep 2023 – Dec 2023",
     role: "3D Design / Generative AI",
-    tags: ["Stable Diffusion", "ControlNet", "Rhino3D"],
+    tags: ["Stable Diffusion", "ControlNet", "Rhino3D", "3D Visualization"],
     features: [
       "3D remodeling of the Nespresso Pixie in Rhinoceros 7",
       "AI-assisted concept exploration using Stable Diffusion + ControlNet",
