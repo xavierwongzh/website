@@ -7,8 +7,9 @@ import type { Project } from "@/types";
 const projects: Project[] = [
   {
     id: "1",
-    icon: "🩺",
-    title: "DUBY — Optimization-Driven Nurse Rostering (MILP + fallback heuristic)",
+    featured: true,
+    mark: "MILP",
+    title: "DUBY\nOptimization-Driven Nurse Rostering (MILP + fallback heuristic)",
     description:
       "Automates 14‑day nurse schedules under staffing, labor, and fairness constraints.",
     detailedDescription:
@@ -29,7 +30,8 @@ const projects: Project[] = [
   },
   {
     id: "2",
-    icon: "✈️",
+    featured: true,
+    mark: "SIM",
     title: "Runway Capacity & Surface Ops Simulation — San Diego Intl (KSAN)",
     description:
       "Systems-level runway + ground ops analysis using CAST with realistic demand scenarios.",
@@ -49,7 +51,8 @@ const projects: Project[] = [
   },
   {
     id: "3",
-    icon: "⛽",
+    featured: true,
+    mark: "ABM",
     title: "Pump Protocol — Agent-Based Simulation for Petrol Station Operations",
     description:
       "Interactive simulation to test station configurations and optimize throughput/profitability.",
@@ -67,7 +70,7 @@ const projects: Project[] = [
   },
   {
     id: "4",
-    icon: "🧾",
+    mark: "QSYS",
     title: "Queue Optima — Queueing Theory Analysis for Airport Immigration",
     description:
       "M/M/k model to compare queue policies and counter allocations for waiting time + fairness.",
@@ -85,7 +88,7 @@ const projects: Project[] = [
   },
   {
     id: "5",
-    icon: "📊",
+    mark: "BI",
     title: "Inventory Forecasting & BOM Planning — Tai Sin Electric (Power BI)",
     description:
       "Forecasting insights + KPI dashboards to improve inventory visibility and replenishment planning.",
@@ -106,6 +109,7 @@ export function Projects() {
   const wispsRef = useRef<HTMLDivElement>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const featuredProjects = projects.filter((p) => p.featured);
 
   useEffect(() => {
     if (wispsRef.current) {
@@ -161,37 +165,98 @@ export function Projects() {
       {/* Wisps */}
       <div ref={wispsRef} className="absolute inset-0" />
 
-      <h2 className="font-outfit text-5xl md:text-6xl text-center mb-12 text-fuchsia-300 drop-shadow-[0_0_20px_rgba(217,70,239,0.5)] relative z-10">
+      <h2 className="font-outfit text-5xl md:text-6xl text-center mb-10 text-fuchsia-300 drop-shadow-[0_0_20px_rgba(217,70,239,0.5)] relative z-10">
         Projects
       </h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-6xl relative z-10">
-        {projects.map((project) => (
-          <button
-            key={project.id}
-            onClick={() => setSelectedProject(project)}
-            className="w-full text-left bg-black/50 rounded-2xl p-6 border border-fuchsia-400/30 hover:scale-[1.03] hover:shadow-[0px_0px_28px_rgba(217,70,239,0.35)] transition-all duration-300 cursor-pointer"
-          >
-            <div className="text-5xl mb-4 filter drop-shadow-[0_0_10px_rgba(217,70,239,0.5)]">
-              {project.icon}
-            </div>
-            <h3 className="text-xl font-semibold text-fuchsia-200 mb-2">{project.title}</h3>
-            <p className="text-purple-100/80 text-sm mb-4">{project.description}</p>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {project.tags.slice(0, 4).map((tag) => (
-                <span
-                  key={tag}
-                  className="text-xs px-2 py-1 rounded-full bg-fuchsia-900/40 border border-fuchsia-500/30 text-fuchsia-200/90"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-            <div className="mt-3 text-xs text-purple-100/60 italic">
-              Click for details →
-            </div>
-          </button>
-        ))}
+
+      {featuredProjects.length > 0 && (
+        <div className="w-full max-w-6xl relative z-10 mb-10">
+          <div className="text-fuchsia-200/80 font-semibold tracking-wide text-sm mb-4">
+            Featured Projects
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {featuredProjects.map((project) => (
+              <button
+                key={project.id}
+                onClick={() => setSelectedProject(project)}
+                className="w-full text-left bg-black/55 rounded-2xl p-6 border border-fuchsia-400/35 hover:scale-[1.02] hover:shadow-[0px_0px_28px_rgba(217,70,239,0.30)] transition-all duration-300 cursor-pointer"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-xs px-2.5 py-1 rounded-full bg-fuchsia-900/40 border border-fuchsia-500/30 text-fuchsia-200/90">
+                    {project.mark ?? "PROJ"}
+                  </div>
+                  {project.duration && (
+                    <div className="text-xs text-purple-100/60">
+                      {project.duration}
+                    </div>
+                  )}
+                </div>
+                <h3 className="text-xl font-semibold text-fuchsia-200 mb-2">
+                  {project.title}
+                </h3>
+                <p className="text-purple-100/80 text-sm mb-4">
+                  {project.description}
+                </p>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {project.tags.slice(0, 4).map((tag) => (
+                    <span
+                      key={tag}
+                      className="text-xs px-2 py-1 rounded-full bg-black/35 border border-fuchsia-500/20 text-purple-100/85"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-3 text-xs text-purple-100/60 italic">
+                  Click for details →
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="w-full max-w-6xl relative z-10">
+        <div className="text-fuchsia-200/80 font-semibold tracking-wide text-sm mb-4">
+          All Projects
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {projects.map((project) => (
+            <button
+              key={project.id}
+              onClick={() => setSelectedProject(project)}
+              className="w-full text-left bg-black/45 rounded-2xl p-6 border border-fuchsia-400/25 hover:scale-[1.02] hover:shadow-[0px_0px_24px_rgba(217,70,239,0.24)] transition-all duration-300 cursor-pointer"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-xs px-2.5 py-1 rounded-full bg-black/35 border border-fuchsia-500/20 text-purple-100/85">
+                  {project.mark ?? "PROJ"}
+                </div>
+                {project.role && (
+                  <div className="text-xs text-purple-100/60">
+                    {project.role}
+                  </div>
+                )}
+              </div>
+              <h3 className="text-xl font-semibold text-fuchsia-200 mb-2">
+                {project.title}
+              </h3>
+              <p className="text-purple-100/80 text-sm mb-4">{project.description}</p>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {project.tags.slice(0, 4).map((tag) => (
+                  <span
+                    key={tag}
+                    className="text-xs px-2 py-1 rounded-full bg-fuchsia-900/30 border border-fuchsia-500/20 text-fuchsia-200/85"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              <div className="mt-3 text-xs text-purple-100/60 italic">
+                Click for details →
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Modal Overlay */}
@@ -212,8 +277,15 @@ export function Projects() {
 
             {/* Scrollable Content */}
             <div className="overflow-y-auto p-8">
-              <div className="text-5xl mb-4 filter drop-shadow-[0_0_10px_rgba(217,70,239,0.5)]">
-                {selectedProject.icon}
+              <div className="flex items-center justify-between gap-4 mb-4">
+                <div className="text-xs px-2.5 py-1 rounded-full bg-fuchsia-900/40 border border-fuchsia-500/30 text-fuchsia-200/90">
+                  {selectedProject.mark ?? "PROJECT"}
+                </div>
+                {selectedProject.duration && (
+                  <div className="text-xs text-purple-100/60">
+                    {selectedProject.duration}
+                  </div>
+                )}
               </div>
               
               <h3 className="font-outfit text-3xl md:text-4xl text-fuchsia-300 mb-3">
@@ -222,11 +294,8 @@ export function Projects() {
               
               {(selectedProject.duration || selectedProject.role) && (
                 <div className="flex flex-wrap gap-4 text-sm text-fuchsia-200/70 mb-4">
-                  {selectedProject.duration && (
-                    <span>⏱️ Duration: {selectedProject.duration}</span>
-                  )}
                   {selectedProject.role && (
-                    <span>👤 Role: {selectedProject.role}</span>
+                    <span>Role: {selectedProject.role}</span>
                   )}
                 </div>
               )}

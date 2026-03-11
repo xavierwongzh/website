@@ -1,6 +1,7 @@
 export interface Project {
   id: string;
-  icon: string;
+  featured?: boolean;
+  mark?: string;
   title: string;
   description: string;
   tags: string[];
