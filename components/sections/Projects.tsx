@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { X, ExternalLink, Github } from "lucide-react";
 import type { Project } from "@/types";
@@ -471,6 +472,133 @@ export function Projects() {
                 </div>
               )}
 
+              {/* Banners */}
+              {selectedProject.title === "DUBY (Duty Buddy)" && (
+                <div className="mb-6 w-full">
+                  <div className="relative w-full overflow-hidden rounded-xl border border-fuchsia-500/40 bg-black/60 shadow-[0_0_30px_rgba(217,70,239,0.35)]">
+                    <Image
+                      src="/banners/DutyBuddyBanner.png"
+                      alt="DUBY (Duty Buddy) — Optimization-driven nurse rostering"
+                      width={1024}
+                      height={307}
+                      className="w-full h-auto object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {selectedProject.title === "Runway & surface ops sim" && (
+                <div className="mb-6 w-full">
+                  <div className="relative w-full overflow-hidden rounded-xl border border-fuchsia-500/40 bg-black/60 shadow-[0_0_30px_rgba(217,70,239,0.35)]">
+                    <Image
+                      src="/banners/RunwaySurfaceOpsSimBanner.png"
+                      alt="Runway & surface ops sim — San Diego Intl (KSAN)"
+                      width={1024}
+                      height={307}
+                      className="w-full h-auto object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {selectedProject.title === "Pump Protocol" && (
+                <div className="mb-6 w-full">
+                  <div className="relative w-full overflow-hidden rounded-xl border border-fuchsia-500/40 bg-black/60 shadow-[0_0_30px_rgba(217,70,239,0.35)]">
+                    <Image
+                      src="/banners/PumpProtocolBanner.png"
+                      alt="Pump Protocol — Agent-based simulation for petrol station ops"
+                      width={1024}
+                      height={307}
+                      className="w-full h-auto object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {selectedProject.title === "Queue Optima" && (
+                <div className="mb-6 w-full">
+                  <div className="relative w-full overflow-hidden rounded-xl border border-fuchsia-500/40 bg-black/60 shadow-[0_0_30px_rgba(217,70,239,0.35)]">
+                    <Image
+                      src="/banners/QueueOptimaBanner.png"
+                      alt="Queue Optima — Queueing theory for airport immigration"
+                      width={1024}
+                      height={307}
+                      className="w-full h-auto object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {selectedProject.title === "Inventory Planning Management" && (
+                <div className="mb-6 w-full">
+                  <div className="relative w-full overflow-hidden rounded-xl border border-fuchsia-500/40 bg-black/60 shadow-[0_0_30px_rgba(217,70,239,0.35)]">
+                    <Image
+                      src="/banners/InventoryPlanningManagementBanner.png"
+                      alt="Inventory Planning Management — Forecasting + BOM planning dashboards"
+                      width={1024}
+                      height={307}
+                      className="w-full h-auto object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {selectedProject.title === "ReVine" && (
+                <div className="mb-6 w-full">
+                  <div className="relative w-full overflow-hidden rounded-xl border border-fuchsia-500/40 bg-black/60 shadow-[0_0_30px_rgba(217,70,239,0.35)]">
+                    <Image
+                      src="/banners/ReVineBanner.png"
+                      alt="ReVine — AI meme-to-video generation"
+                      width={1024}
+                      height={307}
+                      className="w-full h-auto object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {selectedProject.title === "PillSnap" && (
+                <div className="mb-6 w-full">
+                  <div className="relative w-full overflow-hidden rounded-xl border border-fuchsia-500/40 bg-black/60 shadow-[0_0_30px_rgba(217,70,239,0.35)]">
+                    <Image
+                      src="/banners/PillSnapBanner.png"
+                      alt="PillSnap — AI-powered pill identification"
+                      width={1024}
+                      height={307}
+                      className="w-full h-auto object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {selectedProject.title === "DermaCare" && (
+                <div className="mb-6 w-full">
+                  <div className="relative w-full overflow-hidden rounded-xl border border-fuchsia-500/40 bg-black/60 shadow-[0_0_30px_rgba(217,70,239,0.35)]">
+                    <Image
+                      src="/banners/DermaCareBanner.png"
+                      alt="DermaCare — GP medical assistant for smarter skin diagnosis"
+                      width={1024}
+                      height={307}
+                      className="w-full h-auto object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {selectedProject.title === "Zenpresso Excelsa" && (
+                <div className="mb-6 w-full">
+                  <div className="relative w-full overflow-hidden rounded-xl border border-fuchsia-500/40 bg-black/60 shadow-[0_0_30px_rgba(217,70,239,0.35)]">
+                    <Image
+                      src="/banners/ZenpressoExcelsaBanner.png"
+                      alt="Zenpresso Excelsa — 3D/AI reinterpretation of the Nespresso Pixie"
+                      width={1024}
+                      height={307}
+                      className="w-full h-auto object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* ReVine links + demo */}
               {selectedProject.title === "ReVine" && (
                 <div className="mb-4 flex flex-wrap gap-3">
@@ -639,6 +767,171 @@ export function Projects() {
                         className="absolute inset-0 w-full h-full"
                         src="https://www.youtube.com/embed/aN6GkPjVOqg"
                         title="DermaCare demo"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                    </div>
+                  </div>
+                )}
+
+              {/* Runway & surface ops sim links */}
+              {selectedProject.title === "Runway & surface ops sim" && (
+                <div className="mb-4 flex flex-wrap gap-3">
+                  <a
+                    href="https://www.canva.com/design/DAG4QocqLQY/aZCQcYlf71RBD42a7JaHoQ/view"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-black/60 border border-fuchsia-500/40 text-fuchsia-100 hover:bg-fuchsia-600/20 hover:border-fuchsia-300 transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Slides
+                  </a>
+                </div>
+              )}
+
+              {/* Pump Protocol links + demo */}
+              {selectedProject.title === "Pump Protocol" && (
+                <div className="mb-4 flex flex-wrap gap-3">
+                  <a
+                    href="https://pump-protocol-rho.vercel.app/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-fuchsia-500/80 text-black shadow-[0_0_20px_rgba(217,70,239,0.6)] hover:bg-fuchsia-400 hover:shadow-[0_0_28px_rgba(217,70,239,0.9)] transition-colors transition-shadow"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Live app
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      selectedProject &&
+                      setOpenDemoProjectId((prev) =>
+                        prev === selectedProject.id ? null : selectedProject.id
+                      )
+                    }
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-black/60 border border-fuchsia-500/40 text-fuchsia-100 hover:bg-fuchsia-600/20 hover:border-fuchsia-300 transition-colors"
+                    aria-pressed={openDemoProjectId === selectedProject.id}
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    {openDemoProjectId === selectedProject.id ? "Hide demo" : "Watch demo"}
+                  </button>
+
+                  <a
+                    href="https://github.com/xavierwongzh/pump-protocol"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-black/60 border border-fuchsia-500/40 text-fuchsia-100 hover:bg-fuchsia-600/20 hover:border-fuchsia-300 transition-colors"
+                  >
+                    <Github className="w-4 h-4" />
+                    GitHub repo
+                  </a>
+                </div>
+              )}
+
+              {selectedProject.title === "Pump Protocol" &&
+                openDemoProjectId === selectedProject.id && (
+                  <div className="mb-6 w-full">
+                    <div className="relative w-full pt-[56.25%] rounded-xl overflow-hidden border border-fuchsia-500/40 bg-black/60 shadow-[0_0_30px_rgba(217,70,239,0.35)]">
+                      <iframe
+                        className="absolute inset-0 w-full h-full"
+                        src="https://www.youtube.com/embed/eP6PW0RAqck"
+                        title="Pump Protocol demo"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                    </div>
+                  </div>
+                )}
+
+              {/* Queue Optima links */}
+              {selectedProject.title === "Queue Optima" && (
+                <div className="mb-4 flex flex-wrap gap-3">
+                  <a
+                    href="https://www.canva.com/design/DAGKddFkkX8/XL780SzpzexyzLDrUPcGFg/view"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-black/60 border border-fuchsia-500/40 text-fuchsia-100 hover:bg-fuchsia-600/20 hover:border-fuchsia-300 transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Poster
+                  </a>
+
+                  <a
+                    href="https://www.canva.com/design/DAGL70KG5sw/Xip9rGFI0BsoF5dIO5NMkw/view"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-black/60 border border-fuchsia-500/40 text-fuchsia-100 hover:bg-fuchsia-600/20 hover:border-fuchsia-300 transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Slides
+                  </a>
+
+                  <a
+                    href="https://github.com/xavierwongzh/The_Cabin_Crew"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-black/60 border border-fuchsia-500/40 text-fuchsia-100 hover:bg-fuchsia-600/20 hover:border-fuchsia-300 transition-colors"
+                  >
+                    <Github className="w-4 h-4" />
+                    GitHub repo
+                  </a>
+                </div>
+              )}
+
+              {/* Inventory Planning Management links */}
+              {selectedProject.title === "Inventory Planning Management" && (
+                <div className="mb-4 flex flex-wrap gap-3">
+                  <a
+                    href="https://www.canva.com/design/DAHDovNwAfk/MG_XvoYx8bV8uU8TmfqQXg/view"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-black/60 border border-fuchsia-500/40 text-fuchsia-100 hover:bg-fuchsia-600/20 hover:border-fuchsia-300 transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Poster
+                  </a>
+                </div>
+              )}
+
+              {/* Zenpresso Excelsa links + demo */}
+              {selectedProject.title === "Zenpresso Excelsa" && (
+                <div className="mb-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      selectedProject &&
+                      setOpenDemoProjectId((prev) =>
+                        prev === selectedProject.id ? null : selectedProject.id
+                      )
+                    }
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-black/60 border border-fuchsia-500/40 text-fuchsia-100 hover:bg-fuchsia-600/20 hover:border-fuchsia-300 transition-colors"
+                    aria-pressed={openDemoProjectId === selectedProject.id}
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    {openDemoProjectId === selectedProject.id ? "Hide video" : "Watch video"}
+                  </button>
+
+                  <a
+                    href="https://drive.google.com/file/d/1FN9sMkdg6MKLbiz1Ly81GE2ThJcx5KRs/view"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-black/60 border border-fuchsia-500/40 text-fuchsia-100 hover:bg-fuchsia-600/20 hover:border-fuchsia-300 transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Slides
+                  </a>
+                </div>
+              )}
+
+              {selectedProject.title === "Zenpresso Excelsa" &&
+                openDemoProjectId === selectedProject.id && (
+                  <div className="mb-6 w-full">
+                    <div className="relative w-full pt-[56.25%] rounded-xl overflow-hidden border border-fuchsia-500/40 bg-black/60 shadow-[0_0_30px_rgba(217,70,239,0.35)]">
+                      <iframe
+                        className="absolute inset-0 w-full h-full"
+                        src="https://www.youtube.com/embed/wSFtRAlQ3Yg"
+                        title="Zenpresso Excelsa video"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                         allowFullScreen
                       />
