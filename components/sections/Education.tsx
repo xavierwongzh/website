@@ -123,7 +123,7 @@ export function Education() {
             >
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
                 <div>
-                  <h3 className="font-outfit text-xl md:text-2xl text-fuchsia-300 leading-tight">
+                  <h3 className="font-outfit text-xl md:text-2xl text-fuchsia-300 leading-tight whitespace-pre-line">
                     {edu.title}
                   </h3>
                   <p className="text-fuchsia-200 font-semibold mt-1">
@@ -192,13 +192,8 @@ export function Education() {
                 {selectedEdu.year}
               </div>
             
-            <h3 className="font-outfit text-3xl md:text-4xl text-fuchsia-300 mb-2">
-              {selectedEdu.title.split(' – ').map((part, idx) => (
-                <span key={idx}>
-                  {part}
-                  {idx < selectedEdu.title.split(' – ').length - 1 && <br />}
-                </span>
-              ))}
+            <h3 className="font-outfit text-3xl md:text-4xl text-fuchsia-300 mb-2 whitespace-pre-line">
+              {selectedEdu.title}
             </h3>
             
             <p className="text-fuchsia-200 font-semibold text-lg mb-6">
