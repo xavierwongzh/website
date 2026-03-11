@@ -48,7 +48,7 @@ export function About() {
 
         <div className="text-purple-100/85 leading-relaxed mb-6 space-y-4 text-left">
           <p>
-            I’m an Engineering Systems undergraduate at{" "}
+            I’m an Engineering Systems and Design graduate from the{" "}
             <a
               href="https://www.sutd.edu.sg/esd/education"
               target="_blank"
@@ -61,16 +61,11 @@ export function About() {
           </p>
 
           <p>
-            I’m fascinated by how large-scale systems—airports, airlines, and transportation
-            networks—operate under complex constraints and uncertainty. My work focuses on
-            applying data science, simulation, and mathematical optimization to support better
-            decision-making in real operations.
+          I am fascinated by how large-scale operational systems — such as airports, airlines, and transportation networks — function under complex constraints and uncertainty. My work focuses on applying optimization, simulation, and data analytics to support better decision-making in real-world operational systems.
           </p>
 
           <p>
-            Recently, I’ve built optimization models (MILP) for workforce scheduling, developed
-            dashboards for operational monitoring, and analyzed real-world datasets using Python,
-            SQL, and business intelligence tools.
+          Recently, I have developed mixed-integer optimization (MILP) models for workforce scheduling, built data dashboards for operational monitoring, and analyzed real-world datasets using Python, SQL, and business intelligence tools.
           </p>
         </div>
       </div>
