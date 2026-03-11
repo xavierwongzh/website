@@ -148,13 +148,62 @@ const projects: Project[] = [
       "Demonstrated potential of AI tools to improve medication safety for healthcare professionals",
     ],
   },
+  {
+    id: "8",
+    mark: "3D/AI",
+    title: "Zenpresso Excelsa\n3D/AI reinterpretation of the Nespresso Pixie",
+    description:
+      "Conceptual product design project combining Rhino 3D modelling with generative AI exploration.",
+    detailedDescription:
+      "Zenpresso Excelsa is a visionary reinterpretation of the Nespresso Pixie that blends industrial design with generative AI. Using Rhinoceros 7 for 3D modelling and Stable Diffusion with ControlNet, we explored bold conceptual forms and rapidly iterated from sketches to detailed 3D representations. The project showcases how human design intent and AI-assisted exploration can be combined to accelerate creative concept development.",
+    duration: "Sep 2023 – Dec 2023",
+    role: "3D Design / Generative AI",
+    tags: ["Stable Diffusion", "ControlNet", "Rhino3D"],
+    features: [
+      "3D remodeling of the Nespresso Pixie in Rhinoceros 7",
+      "AI-assisted concept exploration using Stable Diffusion + ControlNet",
+      "Rapid iteration from sketches to detailed 3D forms",
+    ],
+  },
 ];
+
+function parseStartMonthYear(value?: string): number {
+  if (!value) return 0;
+  const monthMap: Record<string, number> = {
+    jan: 1,
+    feb: 2,
+    mar: 3,
+    apr: 4,
+    may: 5,
+    jun: 6,
+    jul: 7,
+    aug: 8,
+    sep: 9,
+    oct: 10,
+    nov: 11,
+    dec: 12,
+  };
+
+  // Match first occurrence of "Mon YYYY" anywhere in the string.
+  const m = value.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b\s+(\d{4})/i);
+  if (!m) return 0;
+
+  const mon = monthMap[m[1].toLowerCase()] ?? 0;
+  const year = Number(m[2]) || 0;
+  if (!year || !mon) return 0;
+
+  // Sort key: YYYYMM
+  return year * 100 + mon;
+}
 
 export function Projects() {
   const wispsRef = useRef<HTMLDivElement>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
-  const featuredProjects = projects.filter((p) => p.featured);
+  const sortedProjects = [...projects].sort(
+    (a, b) => parseStartMonthYear(b.duration) - parseStartMonthYear(a.duration)
+  );
+  const featuredProjects = sortedProjects.filter((p) => p.featured);
 
   useEffect(() => {
     if (wispsRef.current) {
@@ -266,7 +315,7 @@ export function Projects() {
           All Projects
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {projects.map((project) => (
+          {sortedProjects.map((project) => (
             <button
               key={project.id}
               onClick={() => setSelectedProject(project)}
