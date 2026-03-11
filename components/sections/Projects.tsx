@@ -12,7 +12,7 @@ const projects: Project[] = [
     title: "DUBY (Duty Buddy)",
     subtitle: "Optimization-driven nurse rostering",
     description:
-      "Automates 14‑day nurse schedules under staffing, labor, and fairness constraints.",
+      "Automates 14‑day nurse schedules with MILP, balancing coverage, labor rules, leave requests, and fairness.",
     detailedDescription:
       "Designed a workforce scheduling system for hospital wards that generates 14‑day rosters for Registered Nurses (RN), Enrolled Nurses (EN), and Healthcare Assistants (HCA). The core engine formulates a Mixed‑Integer Linear Program (MILP) in Python (Pyomo) to optimize shift allocation while respecting coverage, rest rules, leave requests, and fairness for weekends/night shifts. To improve robustness, I added a fallback greedy genetic approach to produce feasible schedules when strict constraints make the MILP infeasible.",
     duration: "Sep 2025 – Present",
@@ -36,7 +36,7 @@ const projects: Project[] = [
     title: "Runway & surface ops sim",
     subtitle: "San Diego Intl (KSAN)",
     description:
-      "Systems-level runway + ground ops analysis using CAST with realistic demand scenarios.",
+      "CAST-based runway + surface operations simulation using Flightradar24 demand scenarios to study throughput, delays, and bottlenecks.",
     detailedDescription:
       "Conducted a systems-level analysis of runway capacity and surface operations at San Diego International Airport (KSAN). I processed flight movement data (Flightradar24) to generate realistic demand scenarios and traffic profiles, then evaluated operational strategies in CAST (e.g., taxiway restrictions, departure queue management, runway exit configurations, and adaptive arrival separation). The study compared theoretical runway capacity against simulated performance and identified bottlenecks such as taxiway geometry, apron congestion, and pushback queues.",
     duration: "Sep 2025 – Dec 2025",
@@ -77,7 +77,7 @@ const projects: Project[] = [
     title: "Queue Optima",
     subtitle: "Queueing theory for airport immigration",
     description:
-      "M/M/k model to compare queue policies and counter allocations for waiting time + fairness.",
+      "M/M/k queueing model comparing policies and counter allocations to reduce waiting time while preserving priority + fairness.",
     detailedDescription:
       "Developed a prescriptive analytics tool to evaluate queue management policies for airport immigration operations (LAX case study). Using an M/M/k queueing framework (Poisson arrivals, exponential service times), I compared Unified Queue, Double Queue, and Priority Queue designs and studied how counter allocation and queue structure affect waiting times and system efficiency while prioritizing U.S. citizens and maintaining fairness for international passengers.",
     duration: "May 2024 – Aug 2024",
