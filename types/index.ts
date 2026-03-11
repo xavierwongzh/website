@@ -3,6 +3,7 @@ export interface Project {
   featured?: boolean;
   mark?: string;
   title: string;
+  subtitle?: string;
   description: string;
   tags: string[];
   link?: string;

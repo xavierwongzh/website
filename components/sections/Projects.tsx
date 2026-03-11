@@ -9,7 +9,8 @@ const projects: Project[] = [
     id: "1",
     featured: true,
     mark: "MILP",
-    title: "DUBY (Duty Buddy)\nOptimization-driven nurse rostering",
+    title: "DUBY (Duty Buddy)",
+    subtitle: "Optimization-driven nurse rostering",
     description:
       "Automates 14‑day nurse schedules under staffing, labor, and fairness constraints.",
     detailedDescription:
@@ -32,7 +33,8 @@ const projects: Project[] = [
     id: "2",
     featured: true,
     mark: "SIM",
-    title: "San Diego Intl (KSAN)\nRunway capacity & surface operations simulation",
+    title: "San Diego Intl (KSAN)",
+    subtitle: "Runway capacity & surface operations simulation",
     description:
       "Systems-level runway + ground ops analysis using CAST with realistic demand scenarios.",
     detailedDescription:
@@ -53,7 +55,8 @@ const projects: Project[] = [
     id: "3",
     featured: true,
     mark: "ABM",
-    title: "Pump Protocol\nAgent-based simulation for petrol station operations",
+    title: "Pump Protocol",
+    subtitle: "Agent-based simulation for petrol station operations",
     description:
       "Interactive simulation to test station configurations and optimize throughput/profitability.",
     detailedDescription:
@@ -71,7 +74,8 @@ const projects: Project[] = [
   {
     id: "4",
     mark: "QSYS",
-    title: "Queue Optima\nQueueing theory analysis for airport immigration",
+    title: "Queue Optima",
+    subtitle: "Queueing theory analysis for airport immigration",
     description:
       "M/M/k model to compare queue policies and counter allocations for waiting time + fairness.",
     detailedDescription:
@@ -89,7 +93,8 @@ const projects: Project[] = [
   {
     id: "5",
     mark: "BI",
-    title: "Tai Sin Electric\nInventory forecasting & BOM planning (Power BI)",
+    title: "Tai Sin Electric",
+    subtitle: "Inventory forecasting & BOM planning (Power BI)",
     description:
       "Forecasting insights + KPI dashboards to improve inventory visibility and replenishment planning.",
     detailedDescription:
@@ -107,7 +112,8 @@ const projects: Project[] = [
     id: "6",
     featured: true,
     mark: "GENAI",
-    title: "ReVine\nAI meme-to-video generation platform",
+    title: "ReVine",
+    subtitle: "AI meme-to-video generation",
     description:
       "AI web app that generates personalized Vine memes by inserting a user’s face using reference-to-video generation models.",
     detailedDescription:
@@ -130,7 +136,8 @@ const projects: Project[] = [
     id: "7",
     featured: true,
     mark: "CV",
-    title: "PillSnap\nAI-powered pill identification system",
+    title: "PillSnap",
+    subtitle: "AI-powered pill identification",
     description:
       "Computer vision pill identification tool that detects, crops, and recognises pills from images to support clinicians and pharmacists.",
     detailedDescription:
@@ -151,7 +158,8 @@ const projects: Project[] = [
   {
     id: "8",
     mark: "3D/AI",
-    title: "Zenpresso Excelsa\n3D/AI reinterpretation of the Nespresso Pixie",
+    title: "Zenpresso Excelsa",
+    subtitle: "3D/AI reinterpretation of the Nespresso Pixie",
     description:
       "Conceptual product design project combining Rhino 3D modelling with generative AI exploration.",
     detailedDescription:
@@ -285,9 +293,14 @@ export function Projects() {
                     </div>
                   )}
                 </div>
-                <h3 className="text-xl font-semibold text-fuchsia-200 mb-2 whitespace-pre-line">
+                <h3 className="text-xl font-semibold text-fuchsia-200 mb-1">
                   {project.title}
                 </h3>
+                {project.subtitle && (
+                  <div className="text-sm text-fuchsia-200/75 mb-3">
+                    {project.subtitle}
+                  </div>
+                )}
                 <p className="text-purple-100/80 text-sm mb-4">
                   {project.description}
                 </p>
@@ -331,9 +344,14 @@ export function Projects() {
                   </div>
                 )}
               </div>
-              <h3 className="text-xl font-semibold text-fuchsia-200 mb-2 whitespace-pre-line">
+              <h3 className="text-xl font-semibold text-fuchsia-200 mb-1">
                 {project.title}
               </h3>
+              {project.subtitle && (
+                <div className="text-sm text-fuchsia-200/75 mb-3">
+                  {project.subtitle}
+                </div>
+              )}
               <p className="text-purple-100/80 text-sm mb-4">{project.description}</p>
               <div className="flex flex-wrap gap-2 mb-3">
                 {project.tags.slice(0, 4).map((tag) => (
@@ -382,9 +400,14 @@ export function Projects() {
                 )}
               </div>
               
-              <h3 className="font-outfit text-3xl md:text-4xl text-fuchsia-300 mb-3 whitespace-pre-line">
+              <h3 className="font-outfit text-3xl md:text-4xl text-fuchsia-300 mb-2">
                 {selectedProject.title}
               </h3>
+              {selectedProject.subtitle && (
+                <div className="text-fuchsia-200/80 mb-4">
+                  {selectedProject.subtitle}
+                </div>
+              )}
               
               {(selectedProject.duration || selectedProject.role) && (
                 <div className="flex flex-wrap gap-4 text-sm text-fuchsia-200/70 mb-4">
@@ -394,11 +417,9 @@ export function Projects() {
                 </div>
               )}
               
-              {selectedProject.detailedDescription && (
-                <p className="text-purple-100/85 mb-6 leading-relaxed">
-                  {selectedProject.detailedDescription}
-                </p>
-              )}
+              <div className="text-purple-100/85 mb-6 leading-relaxed">
+                {selectedProject.detailedDescription ?? selectedProject.description}
+              </div>
               
               {selectedProject.features && selectedProject.features.length > 0 && (
                 <div className="mb-4">
