@@ -487,7 +487,7 @@ export function Projects() {
                 </div>
               )}
 
-              {selectedProject.title === "Runway & surface ops sim" && (
+              {selectedProject.title === "Runway Operations Simulation" && (
                 <div className="mb-6 w-full">
                   <div className="relative w-full overflow-hidden rounded-xl border border-fuchsia-500/40 bg-black/60 shadow-[0_0_30px_rgba(217,70,239,0.35)]">
                     <Image
@@ -775,7 +775,7 @@ export function Projects() {
                 )}
 
               {/* Runway & surface ops sim links */}
-              {selectedProject.title === "Runway & surface ops sim" && (
+              {selectedProject.title === "Runway Operations Simulation" && (
                 <div className="mb-4 flex flex-wrap gap-3">
                   <a
                     href="https://www.canva.com/design/DAG4QocqLQY/aZCQcYlf71RBD42a7JaHoQ/view"
