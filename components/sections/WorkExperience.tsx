@@ -31,7 +31,7 @@ const workData: WorkExperience[] = [
   {
     id: "2",
     year: "Sep 2023 – Dec 2023",
-    title: "Undergraduate Teaching Assistant – 10.013 Modelling and Analysis – (Calculus 1)",
+    title: "Undergrad TA\n10.013 Modelling and Analysis (Calc 1)",
     company: "Singapore University of Technology and Design (SUTD)",
     location: "Singapore",
     description: "Assisted professors in teaching students university-level Mathematics, \nfostering mathematical modeling and problem-solving skills",
@@ -175,7 +175,7 @@ export function WorkExperience() {
             >
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
                 <div>
-                  <h3 className="font-outfit text-xl md:text-2xl text-fuchsia-300 leading-tight">
+                  <h3 className="font-outfit text-xl md:text-2xl text-fuchsia-300 leading-tight whitespace-pre-line">
                     {work.title}
                   </h3>
                   <p className="text-fuchsia-200 font-semibold mt-1">
@@ -249,13 +249,8 @@ export function WorkExperience() {
                 {selectedWork.year}
               </div>
             
-            <h3 className="font-outfit text-3xl md:text-4xl text-fuchsia-300 mb-2">
-              {selectedWork.title.split(' – ').map((part, idx) => (
-                <span key={idx}>
-                  {part}
-                  {idx < selectedWork.title.split(' – ').length - 1 && <br />}
-                </span>
-              ))}
+            <h3 className="font-outfit text-3xl md:text-4xl text-fuchsia-300 mb-2 whitespace-pre-line">
+              {selectedWork.title}
             </h3>
             
             <p className="text-fuchsia-200 font-semibold text-lg mb-2">
