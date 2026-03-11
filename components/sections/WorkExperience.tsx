@@ -8,7 +8,7 @@ const workData: WorkExperience[] = [
   {
     id: "1",
     year: "Aug 2024 – Jan 2025",
-    title: "Data Analyst – Internship",
+    title: "Data Analyst\nInternship",
     company: "Razer Inc.",
     location: "Singapore",
     description: "Developed interactive dashboards, automated reporting workflows,\nand applied machine learning for data-driven marketing decisions",
