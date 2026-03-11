@@ -31,7 +31,7 @@ const workData: WorkExperience[] = [
   {
     id: "2",
     year: "Sep 2023 – Dec 2023",
-    title: "Undergrad TA\n10.013 Modelling and Analysis (Calc 1)",
+    title: "Undergrad TA\n10.013 Modelling and Analysis (Calculus 1)",
     company: "Singapore University of Technology and Design (SUTD)",
     location: "Singapore",
     description: "Assisted professors in teaching students university-level Mathematics, \nfostering mathematical modeling and problem-solving skills",
@@ -45,7 +45,7 @@ const workData: WorkExperience[] = [
   {
     id: "3",
     year: "May 2023 – Jul 2023",
-    title: "RPA Specialist – Transformation & Process Re-Engineering – (National Service Completion)",
+    title: "RPA Specialist\nTransformation & Process Re-Engineering\n(National Service Completion)",
     company: "Republic of Singapore Navy",
     location: "Singapore",
     description: "Developed automation solutions and drafted business cases for \nprocess transformation initiatives",
@@ -76,7 +76,7 @@ const workData: WorkExperience[] = [
   {
     id: "5",
     year: "Jan 2021 – Sep 2022",
-    title: "RPA Specialist – Transformation & Process Re-Engineering – (National Service)",
+    title: "RPA Specialist\nTransformation & Process Re-Engineering\n(National Service)",
     company: "Republic of Singapore Navy",
     location: "Singapore",
     description: "Developed UiPath automation solutions and \ntrained servicemen in RPA skills and process documentation",
@@ -319,4 +319,6 @@ export function WorkExperience() {
     </section>
   );
 }
+
+
 

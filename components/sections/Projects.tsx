@@ -101,7 +101,7 @@ const projects: Project[] = [
       "Collaborated with Tai Sin Electric Limited to build a data-driven inventory forecasting and BOM planning approach. I analyzed transactional and product datasets to identify demand patterns and seasonality, then developed Power BI dashboards to track inventory health, demand trends, and operational KPIs to support faster procurement and production decisions.",
     duration: "Jan 2024 – Apr 2024",
     role: "Data Analytics / BI",
-    tags: ["Power BI", "DAX", "Data Analysis", "Forecasting", "Business Analytics"],
+    tags: ["Power BI", "DAX", "Data Analysis", "Demand Forecasting", "Business Analytics"],
     features: [
       "Interactive dashboards for inventory performance and demand trends",
       "KPI definitions aligned to stakeholder decision-making",
@@ -171,6 +171,31 @@ const projects: Project[] = [
       "3D remodeling of the Nespresso Pixie in Rhinoceros 7",
       "AI-assisted concept exploration using Stable Diffusion + ControlNet",
       "Rapid iteration from sketches to detailed 3D forms",
+    ],
+  },
+  {
+    id: "9",
+    mark: "LIGHT",
+    title: "Catture il Momento",
+    subtitle: "Subtle light installation for the walk home",
+    description:
+      "Light installation concept using projected lights to make the walk home from Changi City Point to the MRT more enjoyable and memorable.",
+    detailedDescription:
+      "Catture il Momento is a light installation concept aimed at improving the walk home for employees based around Changi Business Park. Sited along the 200m route from Changi City Point to the MRT, the proposal uses projected lights to transform an otherwise routine journey into a more enjoyable and emotionally engaging experience. To communicate and validate the concept, we built physical prototypes at a 1:1 scale, created a virtual rendition of the site transformation, integrated architecture models, conducted surveys in the area, and carried out real-life testing. The project was produced under SUTD's Design Thinking and Innovation 03.007 module, themed Glow 1.0.",
+    duration: "Jan 2023 - Apr 2023",
+    role: "Design Thinking / Installation Prototyping",
+    tags: [
+      "Light Installation",
+      "Design Thinking",
+      "Prototyping",
+      "Architecture Models",
+      "Site Research",
+    ],
+    features: [
+      "Projected light installation concept for a real commuter route",
+      "1:1 scale physical prototypes to test the experience",
+      "Virtual site transformation to communicate the intervention",
+      "Area surveys and real-life testing to validate the concept",
     ],
   },
 ];
@@ -480,35 +505,6 @@ export function Projects() {
                 </div>
               )}
               
-              {/* Links */}
-              {(selectedProject.githubLink || selectedProject.demoLink) && (
-                <div className="mt-6 pt-4 border-t border-fuchsia-500/30 flex flex-wrap gap-4">
-                  {selectedProject.githubLink && (
-                    <a
-                      href={selectedProject.githubLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-fuchsia-900/40 border border-fuchsia-500/50 rounded-lg text-fuchsia-200 hover:bg-fuchsia-900/60 hover:border-fuchsia-400 transition-all"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Github className="w-4 h-4" />
-                      View Code
-                    </a>
-                  )}
-                  {selectedProject.demoLink && (
-                    <a
-                      href={selectedProject.demoLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-fuchsia-900/40 border border-fuchsia-500/50 rounded-lg text-fuchsia-200 hover:bg-fuchsia-900/60 hover:border-fuchsia-400 transition-all"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      Live Demo
-                    </a>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -516,4 +512,24 @@ export function Projects() {
     </section>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
