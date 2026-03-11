@@ -94,7 +94,7 @@ const projects: Project[] = [
     id: "5",
     mark: "BI",
     title: "Inventory Planning Management",
-    subtitle: "Forecasting + BOM planning dashboards (Tai Sin Electric, Power BI)",
+    subtitle: "Forecasting + BOM planning dashboards",
     description:
       "Forecasting insights + KPI dashboards to improve inventory visibility and replenishment planning.",
     detailedDescription:
