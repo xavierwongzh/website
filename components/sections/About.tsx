@@ -48,60 +48,29 @@ export function About() {
 
         <div className="text-purple-100/85 leading-relaxed mb-6 space-y-4 text-left">
           <p>
-            I'm a data analyst and creative technologist with a background in{' '}
-            <a 
-              href="https://www.sutd.edu.sg/esd/education" 
-              target="_blank" 
+            I’m an Engineering Systems undergraduate at{" "}
+            <a
+              href="https://www.sutd.edu.sg/esd/education"
+              target="_blank"
               rel="noopener noreferrer"
               className="text-fuchsia-300 hover:text-fuchsia-200 underline decoration-fuchsia-500/50 hover:decoration-fuchsia-300 transition-colors duration-300"
             >
-              Engineering Systems and Design from SUTD
-            </a>
-            , <br />where I specialized in{' '}
-            <a 
-              href="https://www.sutd.edu.sg/esd/education/undergraduate/specialisation-tracks/business-analytics-and-operations-research/#tabs" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-fuchsia-300 hover:text-fuchsia-200 underline decoration-fuchsia-500/50 hover:decoration-fuchsia-300 transition-colors duration-300"
-            >
-              Business Analytics & Operations Research
-            </a>
-            {' '}and{' '}
-            <a 
-              href="https://www.sutd.edu.sg/esd/education/undergraduate/specialisation-tracks/aviation-systems/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-fuchsia-300 hover:text-fuchsia-200 underline decoration-fuchsia-500/50 hover:decoration-fuchsia-300 transition-colors duration-300"
-            >
-              Aviation Systems
-            </a>
-            , along with<br /> minors in{' '}
-            <a 
-              href="https://www.sutd.edu.sg/istd/education/undergraduate/minors/ai/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-fuchsia-300 hover:text-fuchsia-200 underline decoration-fuchsia-500/50 hover:decoration-fuchsia-300 transition-colors duration-300"
-            >
-              Artificial Intelligence
-            </a>
-            {' '}and{' '}
-            <a 
-              href="https://www.sutd.edu.sg/hass/education/undergraduate/minors/design-technology-and-society-minor/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-fuchsia-300 hover:text-fuchsia-200 underline decoration-fuchsia-500/50 hover:decoration-fuchsia-300 transition-colors duration-300"
-            >
-              Design, Technology, and Society
-            </a>
-            .
+              Singapore University of Technology and Design (SUTD)
+            </a>{" "}
+            with a strong interest in aviation systems, data analytics, and operations research.
           </p>
-          
+
           <p>
-            I enjoy blending analytics with aesthetic storytelling, connecting data, design and<br /> AI to create experiences that feel both useful and a little bit magical. From machine learning to <br />interactive visuals, my work bridges logic and creativity to transform complexity into clarity.
+            I’m fascinated by how large-scale systems—airports, airlines, and transportation
+            networks—operate under complex constraints and uncertainty. My work focuses on
+            applying data science, simulation, and mathematical optimization to support better
+            decision-making in real operations.
           </p>
-          
+
           <p>
-            Driven by curiosity and a love for meaningful insight, I aim to build tools and systems that do more than <br />process information. They reveal patterns, inspire understanding, and make technology feel more human.
+            Recently, I’ve built optimization models (MILP) for workforce scheduling, developed
+            dashboards for operational monitoring, and analyzed real-world datasets using Python,
+            SQL, and business intelligence tools.
           </p>
         </div>
       </div>

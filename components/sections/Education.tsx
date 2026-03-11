@@ -41,22 +41,6 @@ const educationData: Education[] = [
       "Synchronization of WordPress Database and Local Database for Store Menu Items"
     ]
   },
-  {
-    id: "3",
-    year: "Apr 2016 – Mar 2017",
-    title: "Polytechnic Foundation Programme – Mechatronics and Aerospace Engineering",
-    institution: "Temasek Polytechnic",
-  },
-  {
-    id: "4",
-    year: "Jan 2012 – Dec 2015",
-    title: "GCE 'N' Levels",
-    institution: "Bedok Green Secondary School",
-    activities: [
-      "President, Infocomm Club (2013 – 2015)",
-      "Member, Softball"
-    ]
-  },
 ];
 
 export function Education() {

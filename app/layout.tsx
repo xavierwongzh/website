@@ -15,17 +15,32 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Xavier - Portfolio | Dark Mythical Forest",
-  description: "Exploring worlds of data, design, and dreams. A personal portfolio journey through a mystical forest.",
-  keywords: ["portfolio", "data analyst", "creative technologist", "Xavier"],
-  authors: [{ name: "Xavier" }],
-  creator: "Xavier",
+  title: "Xavier Wong | Aviation Systems • Optimization • Analytics",
+  description:
+    "Engineering Systems undergraduate at SUTD focused on aviation operations, optimization (OR/MILP), simulation, and data analytics.",
+  keywords: [
+    "Xavier Wong",
+    "portfolio",
+    "aviation systems",
+    "airport operations",
+    "operations research",
+    "optimization",
+    "MILP",
+    "simulation",
+    "data analytics",
+    "Python",
+    "SQL",
+    "Power BI",
+  ],
+  authors: [{ name: "Xavier Wong" }],
+  creator: "Xavier Wong",
   openGraph: {
     type: "website",
     locale: "en_US",
-    title: "Xavier - Portfolio",
-    description: "Exploring worlds of data, design, and dreams",
-    siteName: "Xavier Portfolio",
+    title: "Xavier Wong | Portfolio",
+    description:
+      "Aviation operations, optimization (OR/MILP), simulation, and data analytics projects.",
+    siteName: "Xavier Wong Portfolio",
   },
 };
 

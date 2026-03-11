@@ -7,116 +7,98 @@ import type { Project } from "@/types";
 const projects: Project[] = [
   {
     id: "1",
-    icon: "🍄",
-    title: "Data Visualization Platform",
-    description: "Interactive dashboard for exploring complex datasets with beautiful visualizations",
-    detailedDescription: "A comprehensive data visualization platform that transforms raw data into meaningful insights through interactive and responsive charts, graphs, and dashboards.",
-    duration: "3 months",
-    role: "Full Stack Developer",
-    tags: ["Python", "D3.js", "React", "Flask", "PostgreSQL"],
+    icon: "🩺",
+    title: "DUBY — Optimization-Driven Nurse Rostering (MILP + fallback heuristic)",
+    description:
+      "Automates 14‑day nurse schedules under staffing, labor, and fairness constraints.",
+    detailedDescription:
+      "Designed a workforce scheduling system for hospital wards that generates 14‑day rosters for Registered Nurses (RN), Enrolled Nurses (EN), and Healthcare Assistants (HCA). The core engine formulates a Mixed‑Integer Linear Program (MILP) in Python (Pyomo) to optimize shift allocation while respecting coverage, rest rules, leave requests, and fairness for weekends/night shifts. To improve robustness, I added a fallback greedy genetic approach to produce feasible schedules when strict constraints make the MILP infeasible.",
+    duration: "Sep 2025 – Present",
+    role: "Optimization / Analytics",
+    tags: ["Python", "Pyomo", "MILP", "Operations Research", "Workforce Scheduling"],
     features: [
-      "Real-time data processing and visualization",
-      "Customizable dashboard layouts with drag-and-drop functionality",
-      "Multiple chart types including line, bar, pie, and heatmaps",
-      "Export functionality for reports in PDF and PNG formats",
-      "Responsive design for mobile and tablet devices"
-    ],
-    challenges: [
-      "Optimizing performance for large datasets (1M+ records)",
-      "Implementing smooth animations without compromising responsiveness",
-      "Creating an intuitive UX for complex data filtering"
+      "Constraint-driven scheduling with coverage and labor rules",
+      "Fairness controls for weekend and night shift distribution",
+      "Leave requests and rest-rule enforcement",
+      "Fallback heuristic to recover feasibility when MILP fails",
     ],
     outcomes: [
-      "Reduced data analysis time by 60%",
-      "Adopted by 3 departments for daily reporting",
-      "Positive user feedback with 4.5/5 satisfaction rating"
+      "Automated roster generation for multi-role wards over 14-day horizons",
+      "Demonstrated optimization + heuristic strategy for robustness",
     ],
-    githubLink: "#",
-    demoLink: "#",
   },
   {
     id: "2",
-    icon: "✨",
-    title: "ML Prediction Model",
-    description: "Machine learning model for predictive analytics with 95% accuracy",
-    detailedDescription: "Advanced machine learning model for forecasting business metrics using ensemble methods and deep learning techniques to achieve high prediction accuracy.",
-    duration: "2 months",
-    role: "Data Scientist",
-    tags: ["TensorFlow", "Python", "Jupyter", "Scikit-learn", "Pandas"],
+    icon: "✈️",
+    title: "Runway Capacity & Surface Ops Simulation — San Diego Intl (KSAN)",
+    description:
+      "Systems-level runway + ground ops analysis using CAST with realistic demand scenarios.",
+    detailedDescription:
+      "Conducted a systems-level analysis of runway capacity and surface operations at San Diego International Airport (KSAN). I processed flight movement data (Flightradar24) to generate realistic demand scenarios and traffic profiles, then evaluated operational strategies in CAST (e.g., taxiway restrictions, departure queue management, runway exit configurations, and adaptive arrival separation). The study compared theoretical runway capacity against simulated performance and identified bottlenecks such as taxiway geometry, apron congestion, and pushback queues.",
+    duration: "Sep 2025 – Dec 2025",
+    role: "Simulation / Analytics",
+    tags: ["CAST", "Airport Simulation", "Aviation Systems", "Data Analysis"],
     features: [
-      "Time series forecasting with LSTM networks",
-      "Feature engineering pipeline with automated selection",
-      "Model evaluation dashboard with performance metrics",
-      "API endpoint for real-time predictions",
-      "Automated model retraining schedule"
-    ],
-    challenges: [
-      "Handling imbalanced dataset with limited historical data",
-      "Preventing overfitting while maintaining high accuracy",
-      "Deploying model with minimal latency requirements"
+      "Demand scenario generation from flight movement data",
+      "Strategy comparison across multiple surface-operation policies",
+      "Bottleneck identification via throughput and delay propagation analysis",
     ],
     outcomes: [
-      "Achieved 95% prediction accuracy on test set",
-      "Improved business forecasting accuracy by 40%",
-      "Enabled data-driven decision making across teams"
+      "Actionable recommendations to reduce taxi congestion and stabilize runway flow",
     ],
-    githubLink: "#",
   },
   {
     id: "3",
-    icon: "🌙",
-    title: "Creative Portfolio",
-    description: "Collection of digital art pieces exploring the intersection of code and creativity",
-    detailedDescription: "An experimental creative coding portfolio showcasing generative art, interactive installations, and WebGL visualizations that blend technology with artistic expression.",
-    duration: "Ongoing",
-    role: "Creative Developer",
-    tags: ["p5.js", "WebGL", "CSS", "Three.js", "GLSL"],
+    icon: "⛽",
+    title: "Pump Protocol — Agent-Based Simulation for Petrol Station Operations",
+    description:
+      "Interactive simulation to test station configurations and optimize throughput/profitability.",
+    detailedDescription:
+      "Built an agent-based simulation model of petrol station operations (arrivals, queueing, fueling, departures) to evaluate system performance under different configurations and operational parameters. The tool exposes controls for arrival rates, pump capacity, staffing, and pricing, and visualizes key metrics such as utilization, customer wait time, rejection rates, and profitability in real time.",
+    duration: "Jan 2025 – May 2025",
+    role: "Simulation / Frontend",
+    tags: ["JavaScript", "Agent-Based Modeling", "Simulation", "Data Visualization"],
     features: [
-      "Generative art pieces with randomized parameters",
-      "Interactive 3D visualizations using WebGL",
-      "Audio-reactive animations synchronized with music",
-      "Gallery view with smooth transitions",
-      "Mobile-optimized touch interactions"
+      "Interactive controls for scenario experimentation",
+      "Real-time KPI visualization (utilization, wait time, rejection, profit)",
+      "Bottleneck discovery through what-if analysis",
     ],
-    challenges: [
-      "Optimizing WebGL performance across different devices",
-      "Creating accessible interactive experiences",
-      "Balancing artistic vision with technical constraints"
-    ],
-    outcomes: [
-      "Featured in 2 digital art exhibitions",
-      "1000+ visitors within first month",
-      "Collaborative opportunities with other artists"
-    ],
-    demoLink: "#",
+    outcomes: ["A live web demo and video to communicate results clearly"],
   },
   {
     id: "4",
-    icon: "🔮",
-    title: "Analytics Dashboard",
-    description: "Real-time analytics platform for business intelligence and decision making",
-    detailedDescription: "Enterprise-grade analytics dashboard providing comprehensive business intelligence through real-time data aggregation, KPI tracking, and predictive insights.",
-    duration: "4 months",
-    role: "BI Developer",
-    tags: ["SQL", "Tableau", "Power BI", "Python", "Azure"],
+    icon: "🧾",
+    title: "Queue Optima — Queueing Theory Analysis for Airport Immigration",
+    description:
+      "M/M/k model to compare queue policies and counter allocations for waiting time + fairness.",
+    detailedDescription:
+      "Developed a prescriptive analytics tool to evaluate queue management policies for airport immigration operations (LAX case study). Using an M/M/k queueing framework (Poisson arrivals, exponential service times), I compared Unified Queue, Double Queue, and Priority Queue designs and studied how counter allocation and queue structure affect waiting times and system efficiency while prioritizing U.S. citizens and maintaining fairness for international passengers.",
+    duration: "May 2024 – Aug 2024",
+    role: "Operations Research / Analytics",
+    tags: ["Queueing Theory", "Operations Research", "Aviation Operations", "Modeling"],
     features: [
-      "Real-time KPI monitoring with automated alerts",
-      "Custom report builder with natural language queries",
-      "Integration with multiple data sources (CRM, ERP, databases)",
-      "Role-based access control for sensitive data",
-      "Scheduled report distribution via email"
+      "Policy comparison (unified/double/priority queue)",
+      "Counter allocation experiments and trade-off analysis",
+      "Wait time + efficiency evaluation with fairness considerations",
     ],
-    challenges: [
-      "Integrating disparate data sources with different schemas",
-      "Ensuring data accuracy and consistency across systems",
-      "Meeting strict performance requirements for real-time updates"
+    outcomes: ["Demonstrated how queue models guide operational policy decisions"],
+  },
+  {
+    id: "5",
+    icon: "📊",
+    title: "Inventory Forecasting & BOM Planning — Tai Sin Electric (Power BI)",
+    description:
+      "Forecasting insights + KPI dashboards to improve inventory visibility and replenishment planning.",
+    detailedDescription:
+      "Collaborated with Tai Sin Electric Limited to build a data-driven inventory forecasting and BOM planning approach. I analyzed transactional and product datasets to identify demand patterns and seasonality, then developed Power BI dashboards to track inventory health, demand trends, and operational KPIs to support faster procurement and production decisions.",
+    duration: "Jan 2024 – Apr 2024",
+    role: "Data Analytics / BI",
+    tags: ["Power BI", "DAX", "Data Analysis", "Forecasting"],
+    features: [
+      "Interactive dashboards for inventory performance and demand trends",
+      "KPI definitions aligned to stakeholder decision-making",
     ],
-    outcomes: [
-      "Centralized reporting for 5 business units",
-      "Reduced report generation time from hours to minutes",
-      "Enabled proactive decision-making with real-time alerts"
-    ],
-    demoLink: "#",
+    outcomes: ["Improved visibility for stock replenishment and BOM planning decisions"],
   },
 ];
 
@@ -183,7 +165,7 @@ export function Projects() {
         Projects
       </h2>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl relative z-10">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-6xl relative z-10">
         {projects.map((project) => (
           <button
             key={project.id}
@@ -196,7 +178,7 @@ export function Projects() {
             <h3 className="text-xl font-semibold text-fuchsia-200 mb-2">{project.title}</h3>
             <p className="text-purple-100/80 text-sm mb-4">{project.description}</p>
             <div className="flex flex-wrap gap-2 mb-3">
-              {project.tags.slice(0, 3).map((tag) => (
+              {project.tags.slice(0, 4).map((tag) => (
                 <span
                   key={tag}
                   className="text-xs px-2 py-1 rounded-full bg-fuchsia-900/40 border border-fuchsia-500/30 text-fuchsia-200/90"

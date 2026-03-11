@@ -73,9 +73,9 @@ export default function Home() {
         <Education />
         <Projects />
 
-      <footer className="relative text-purple-200/70 text-center py-12 text-sm">
-        <p>Crafted under the moonlight — © Xavier 2025</p>
-      </footer>
+        <footer className="relative text-purple-200/70 text-center py-12 text-sm">
+          <p>© {new Date().getFullYear()} Xavier Wong</p>
+        </footer>
       </div>
 
       <BackToTop />

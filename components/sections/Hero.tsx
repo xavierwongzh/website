@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import { ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 export function Hero() {
   const lightsRef = useRef<HTMLDivElement>(null);
@@ -57,16 +56,51 @@ export function Hero() {
         <h1 className="font-outfit text-6xl md:text-8xl font-bold text-fuchsia-300 drop-shadow-[0_0_40px_rgba(217,70,239,0.6)] animate-fade-in-down mb-6">
           Xavier Wong
         </h1>
-        <div className="text-lg md:text-xl text-purple-100/80 font-light animate-fade-in-up animation-delay-500 mb-16 max-w-3xl mx-auto">
-          <p className="mb-2">A curious mind beneath an infinite sky.</p>
-          <p>Exploring constellations of data, design, and dreams.</p>
+        <div className="text-lg md:text-xl text-purple-100/85 font-light animate-fade-in-up animation-delay-500 mb-10 max-w-3xl mx-auto">
+          <p className="mb-4">
+            Engineering Systems undergraduate at SUTD focused on aviation operations,
+            optimization (OR/MILP), simulation, and data analytics.
+          </p>
+          <div className="flex flex-wrap justify-center gap-2 text-sm">
+            {["Aviation Systems", "Operations Research", "Optimization", "Simulation", "Analytics"].map((tag) => (
+              <span
+                key={tag}
+                className="px-3 py-1 rounded-full bg-black/40 border border-fuchsia-500/30 text-fuchsia-200/90"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
+          <button
+            onClick={() => document.querySelector("#projects")?.scrollIntoView({ behavior: "smooth" })}
+            className="px-5 py-2.5 rounded-xl bg-fuchsia-600/25 border border-fuchsia-400/40 text-fuchsia-100 hover:bg-fuchsia-600/35 hover:border-fuchsia-300 transition-all shadow-[0_0_30px_rgba(217,70,239,0.18)]"
+          >
+            View Projects
+          </button>
+          <a
+            href="mailto:xavier_wong@mymail.sutd.edu.sg"
+            className="px-5 py-2.5 rounded-xl bg-black/35 border border-fuchsia-500/25 text-purple-100/90 hover:bg-black/45 hover:border-fuchsia-400/40 transition-all"
+          >
+            Email
+          </a>
+          <a
+            href="https://www.linkedin.com/in/xavierwongzh"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-5 py-2.5 rounded-xl bg-black/35 border border-fuchsia-500/25 text-purple-100/90 hover:bg-black/45 hover:border-fuchsia-400/40 transition-all"
+          >
+            LinkedIn
+          </a>
         </div>
 
         <button
           onClick={scrollToAbout}
           className="flex flex-col items-center gap-2 text-purple-200/60 hover:text-fuchsia-300 transition-all duration-300 mx-auto group text-sm font-light"
         >
-          <span>Begin Journey</span>
+          <span>Scroll</span>
           <ChevronDown className="w-4 h-4 group-hover:translate-y-1 transition-transform duration-300" />
         </button>
       </div>
