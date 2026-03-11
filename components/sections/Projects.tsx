@@ -126,6 +126,28 @@ const projects: Project[] = [
       "Demonstrated orchestration of AI tools + full-stack delivery under hackathon constraints",
     ],
   },
+  {
+    id: "7",
+    featured: true,
+    mark: "CV",
+    title: "PillSnap\nAI-powered pill identification system",
+    description:
+      "Computer vision pill identification tool that detects, crops, and recognises pills from images to support clinicians and pharmacists.",
+    detailedDescription:
+      "Developed during the SGHackItRX 2025 hackathon, PillSnap is an AI-powered pill identification system that helps clinicians and pharmacists accurately identify medications from images. The system allows users to capture a photo containing multiple pills, automatically detects and crops individual pills, and identifies them using computer vision models. This reduces manual identification time and supports safer medication reconciliation in clinical workflows.",
+    duration: "Aug 2025 – Sep 2025",
+    role: "Computer Vision / AI",
+    tags: ["Computer Vision", "Image Recognition", "Healthcare AI"],
+    features: [
+      "Multi-pill image capture with automatic detection and cropping",
+      "Computer vision pipeline for pill identification from images",
+      "Workflow aligned with clinical medication reconciliation needs",
+    ],
+    outcomes: [
+      "1st Runner-Up — SGHackItRX 2025",
+      "Demonstrated potential of AI tools to improve medication safety for healthcare professionals",
+    ],
+  },
 ];
 
 export function Projects() {
