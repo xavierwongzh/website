@@ -156,7 +156,29 @@ const projects: Project[] = [
     ],
   },
   {
-    id: "8",
+    id: "9",
+    featured: true,
+    mark: "GENAI",
+    title: "DermaCare",
+    subtitle: "AI dermatology assistant for GPs",
+    description:
+      "AI-powered dermatology assistant that helps general practitioners perform faster preliminary assessments of skin conditions.",
+    detailedDescription:
+      "DermaCare is an AI dermatology assistant designed to support general practitioners with faster, more confident preliminary skin assessments. Clinicians can capture or upload photos of skin conditions, and the system surfaces likely condition categories, risk flags, and follow-up guidance. The goal is not to replace dermatologists but to act as a triage and decision-support tool that improves documentation quality and speeds up referrals when needed.",
+    duration: "Jan 2025 – Mar 2025",
+    role: "Full-stack / AI application",
+    tags: ["Healthcare AI", "Computer Vision", "Next.js", "TypeScript"],
+    features: [
+      "Image-based preliminary assessment of skin conditions",
+      "Risk flagging and suggested follow-up actions for GPs",
+      "Web-based interface suitable for clinic workflows",
+    ],
+    outcomes: [
+      "Demonstrated how AI decision support can accelerate preliminary dermatology assessments in primary care",
+    ],
+  },
+  {
+    id: "10",
     mark: "3D/AI",
     title: "Zenpresso Excelsa",
     subtitle: "3D/AI reinterpretation of the Nespresso Pixie",
@@ -174,7 +196,7 @@ const projects: Project[] = [
     ],
   },
   {
-    id: "9",
+    id: "11",
     mark: "LIGHT",
     title: "Catture il Momento",
     subtitle: "Subtle light installation for the walk home",
@@ -232,6 +254,7 @@ function parseStartMonthYear(value?: string): number {
 export function Projects() {
   const wispsRef = useRef<HTMLDivElement>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [openDemoProjectId, setOpenDemoProjectId] = useState<string | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const sortedProjects = [...projects].sort(
     (a, b) => parseStartMonthYear(b.duration) - parseStartMonthYear(a.duration)
@@ -285,6 +308,12 @@ export function Projects() {
       document.body.style.overflow = 'unset';
       document.body.removeAttribute('data-modal-open');
     };
+  }, [selectedProject]);
+  // Reset any open demo when modal closes
+  useEffect(() => {
+    if (!selectedProject) {
+      setOpenDemoProjectId(null);
+    }
   }, [selectedProject]);
 
   return (
@@ -441,7 +470,182 @@ export function Projects() {
                   )}
                 </div>
               )}
-              
+
+              {/* ReVine links + demo */}
+              {selectedProject.title === "ReVine" && (
+                <div className="mb-4 flex flex-wrap gap-3">
+                  <a
+                    href="https://revine-sigma.vercel.app/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-fuchsia-500/80 text-black shadow-[0_0_20px_rgba(217,70,239,0.6)] hover:bg-fuchsia-400 hover:shadow-[0_0_28px_rgba(217,70,239,0.9)] transition-colors transition-shadow"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Live app
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      selectedProject &&
+                      setOpenDemoProjectId((prev) =>
+                        prev === selectedProject.id ? null : selectedProject.id
+                      )
+                    }
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-black/60 border border-fuchsia-500/50 text-fuchsia-100 hover:bg-fuchsia-600/20 hover:border-fuchsia-400 transition-colors"
+                    aria-pressed={openDemoProjectId === selectedProject.id}
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    {openDemoProjectId === selectedProject.id ? "Hide demo" : "Watch demo"}
+                  </button>
+
+                  <a
+                    href="https://github.com/hunchongtan/revine"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-black/60 border border-fuchsia-500/40 text-fuchsia-100 hover:bg-fuchsia-600/20 hover:border-fuchsia-300 transition-colors"
+                  >
+                    <Github className="w-4 h-4" />
+                    GitHub repo
+                  </a>
+                </div>
+              )}
+
+              {selectedProject.title === "ReVine" &&
+                openDemoProjectId === selectedProject.id && (
+                  <div className="mb-6 w-full">
+                    <div className="relative w-full pt-[56.25%] rounded-xl overflow-hidden border border-fuchsia-500/40 bg-black/60 shadow-[0_0_30px_rgba(217,70,239,0.35)]">
+                      <iframe
+                        className="absolute inset-0 w-full h-full"
+                        src="https://www.youtube.com/embed/lHktWx5rvhc"
+                        title="ReVine demo"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                    </div>
+                  </div>
+                )}
+
+              {/* PillSnap links + demo */}
+              {selectedProject.title === "PillSnap" && (
+                <div className="mb-4 flex flex-wrap gap-3">
+                  <a
+                    href="https://pill-snap.vercel.app/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-fuchsia-500/80 text-black shadow-[0_0_20px_rgba(217,70,239,0.6)] hover:bg-fuchsia-400 hover:shadow-[0_0_28px_rgba(217,70,239,0.9)] transition-colors transition-shadow"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Live app
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      selectedProject &&
+                      setOpenDemoProjectId((prev) =>
+                        prev === selectedProject.id ? null : selectedProject.id
+                      )
+                    }
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-black/60 border border-fuchsia-500/50 text-fuchsia-100 hover:bg-fuchsia-600/20 hover:border-fuchsia-400 transition-colors"
+                    aria-pressed={openDemoProjectId === selectedProject.id}
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    {openDemoProjectId === selectedProject.id ? "Hide demo" : "Watch demo"}
+                  </button>
+
+                  <a
+                    href="https://devpost.com/software/pillsnap-instant-ai-pill-identifier-for-hcps"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-black/60 border border-fuchsia-500/40 text-fuchsia-100 hover:bg-fuchsia-600/20 hover:border-fuchsia-300 transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Devpost
+                  </a>
+
+                  <a
+                    href="https://github.com/hunchongtan/PillSnap"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-black/60 border border-fuchsia-500/40 text-fuchsia-100 hover:bg-fuchsia-600/20 hover:border-fuchsia-300 transition-colors"
+                  >
+                    <Github className="w-4 h-4" />
+                    GitHub repo
+                  </a>
+                </div>
+              )}
+
+              {selectedProject.title === "PillSnap" &&
+                openDemoProjectId === selectedProject.id && (
+                  <div className="mb-6 w-full">
+                    <div className="relative w-full pt-[56.25%] rounded-xl overflow-hidden border border-fuchsia-500/40 bg-black/60 shadow-[0_0_30px_rgba(217,70,239,0.35)]">
+                      <iframe
+                        className="absolute inset-0 w-full h-full"
+                        src="https://www.youtube.com/embed/SS0_JtjGJcg"
+                        title="PillSnap demo"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                    </div>
+                  </div>
+                )}
+
+              {/* DermaCare links + demo */}
+              {selectedProject.title === "DermaCare" && (
+                <div className="mb-4 flex flex-wrap gap-3">
+                  <a
+                    href="https://dermacare-gilt.vercel.app/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-fuchsia-500/80 text-black shadow-[0_0_20px_rgba(217,70,239,0.6)] hover:bg-fuchsia-400 hover:shadow-[0_0_28px_rgba(217,70,239,0.9)] transition-colors transition-shadow"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Live app
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      selectedProject &&
+                      setOpenDemoProjectId((prev) =>
+                        prev === selectedProject.id ? null : selectedProject.id
+                      )
+                    }
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-black/60 border border-fuchsia-500/50 text-fuchsia-100 hover:bg-fuchsia-600/20 hover:border-fuchsia-400 transition-colors"
+                    aria-pressed={openDemoProjectId === selectedProject.id}
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    {openDemoProjectId === selectedProject.id ? "Hide demo" : "Watch demo"}
+                  </button>
+
+                  <a
+                    href="https://github.com/rappleit/dermacare"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-black/60 border border-fuchsia-500/40 text-fuchsia-100 hover:bg-fuchsia-600/20 hover:border-fuchsia-300 transition-colors"
+                  >
+                    <Github className="w-4 h-4" />
+                    GitHub repo
+                  </a>
+                </div>
+              )}
+
+              {selectedProject.title === "DermaCare" &&
+                openDemoProjectId === selectedProject.id && (
+                  <div className="mb-6 w-full">
+                    <div className="relative w-full pt-[56.25%] rounded-xl overflow-hidden border border-fuchsia-500/40 bg-black/60 shadow-[0_0_30px_rgba(217,70,239,0.35)]">
+                      <iframe
+                        className="absolute inset-0 w-full h-full"
+                        src="https://www.youtube.com/embed/aN6GkPjVOqg"
+                        title="DermaCare demo"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                    </div>
+                  </div>
+                )}
+
               <div className="text-purple-100/85 mb-6 leading-relaxed">
                 {selectedProject.detailedDescription ?? selectedProject.description}
               </div>
