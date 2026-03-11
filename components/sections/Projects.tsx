@@ -33,7 +33,7 @@ const projects: Project[] = [
     id: "2",
     featured: true,
     mark: "SIM",
-    title: "Runway & surface ops simulation",
+    title: "Runway & surface ops sim",
     subtitle: "San Diego Intl (KSAN)",
     description:
       "Systems-level runway + ground ops analysis using CAST with realistic demand scenarios.",
@@ -93,8 +93,8 @@ const projects: Project[] = [
   {
     id: "5",
     mark: "BI",
-    title: "Tai Sin Electric",
-    subtitle: "Inventory forecasting & BOM planning (Power BI)",
+    title: "Inventory Planning Management",
+    subtitle: "Forecasting + BOM planning dashboards (Tai Sin Electric, Power BI)",
     description:
       "Forecasting insights + KPI dashboards to improve inventory visibility and replenishment planning.",
     detailedDescription:
