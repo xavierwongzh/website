@@ -99,22 +99,6 @@ const workData: WorkExperience[] = [
     description: "Conducted research on LiDAR technology and SLAM algorithms and \nintegrated SLAM data into a mobile application",
     technologies: ["ROS", "Visual SLAM", "C++", "LiDAR", "Python"]
   },
-  {
-    id: "7",
-    year: "Mar 2018 – Sep 2019",
-    title: "Food and Beverage Assistant – Part-Time",
-    company: "The Westin Singapore",
-    location: "Singapore",
-    description: "Provided luxury hospitality service across \nExecutive Lounge, Pool Bar, and Room Service operations",
-    responsibilities: [
-      "Executive Lounge - Waiter: Welcomed and acknowledged guests in a timely, friendly manner; took beverage orders and ensured lounge stations were fully stocked and maintained",
-      "Pool Bartender: Prepared alcoholic and non-alcoholic beverages; interacted with customers, took orders, and served snacks and drinks; assessed customer needs and made recommendations",
-      "Pool Bartender: Upsold guests on additional items to enhance dining experience; responsible for restocking bar inventory and maintaining cleanliness of pool side equipment",
-      "Room Service: Provided luxury service by communicating to each guest in a thoughtful and authentic manner; took food & beverage orders via telephone",
-      "Room Service: Maintained knowledge of all menu items; input sales transactions into Point of Sale (POS) system; processed payments and upsold guests when appropriate"
-    ],
-    technologies: ["Customer Experience", "POS Systems", "Bartending", "Food Safety", "Food Service"]
-  },
 ];
 
 export function WorkExperience() {
