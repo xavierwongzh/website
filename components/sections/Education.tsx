@@ -44,7 +44,7 @@ const educationData: Education[] = [
   {
     id: "3",
     year: "Apr 2016 – Mar 2017",
-    title: "Polytechnic Foundation Programme – Mechatronics and Aerospace Engineering",
+    title: "Polytechnic Foundation Programme\nMechatronics and Aerospace Engineering",
     institution: "Temasek Polytechnic",
   },
 ];

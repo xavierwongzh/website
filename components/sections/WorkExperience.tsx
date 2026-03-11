@@ -166,61 +166,63 @@ export function WorkExperience() {
           Work Experience
         </h2>
 
-        <div className="space-y-12">
-          {workData.map((work, index) => (
-            <div
+        <div className="grid grid-cols-1 gap-4 max-w-4xl mx-auto">
+          {workData.map((work) => (
+            <button
               key={work.id}
-              className="grid md:grid-cols-[100px_1fr] gap-6 items-start relative"
+              onClick={() => setSelectedWork(work)}
+              className="w-full text-left bg-black/40 border border-fuchsia-500/30 rounded-2xl p-6 hover:bg-black/50 hover:border-fuchsia-400 hover:shadow-[0_0_30px_rgba(168,85,247,0.25)] transition-all duration-300"
             >
-              {/* Timeline connector */}
-              {index < workData.length - 1 && (
-                <div className="absolute left-[31px] top-8 w-0.5 h-[calc(100%+3rem)] bg-gradient-to-b from-fuchsia-500 to-transparent hidden md:block" />
-              )}
-
-              {/* Rune marker */}
-              <div className="flex justify-center md:justify-start">
-                <div className="w-16 h-16 rounded-full bg-[radial-gradient(circle,rgba(168,85,247,0.3),rgba(168,85,247,0.1))] border-2 border-fuchsia-500 relative animate-rune-glow flex items-center justify-center">
-                  <span className="text-2xl text-fuchsia-300">✦</span>
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
+                <div>
+                  <h3 className="font-outfit text-xl md:text-2xl text-fuchsia-300 leading-tight">
+                    {work.title}
+                  </h3>
+                  <p className="text-fuchsia-200 font-semibold mt-1">
+                    {work.company}
+                  </p>
+                  {work.location && (
+                    <p className="text-fuchsia-200/70 text-sm mt-1">
+                      📍 {work.location}
+                    </p>
+                  )}
+                </div>
+                <div className="text-sm text-fuchsia-200/80 font-semibold md:text-right">
+                  {work.year}
                 </div>
               </div>
 
-              {/* Work content */}
-              <button
-                onClick={() => setSelectedWork(work)}
-                className="w-full text-left bg-black/40 border border-fuchsia-500/30 rounded-lg p-6 hover:bg-black/50 hover:border-fuchsia-400 hover:shadow-[0_0_30px_rgba(168,85,247,0.3)] transition-all duration-300 hover:translate-x-2 cursor-pointer"
-              >
-                <div className="text-sm text-fuchsia-200 font-semibold mb-1">
-                  {work.year}
-                </div>
-                <h3 className="font-outfit text-2xl md:text-3xl text-fuchsia-300 mb-2">
-                  {work.title.split(' – ').map((part, idx) => (
-                    <span key={idx}>
-                      {part}
-                      {idx < work.title.split(' – ').length - 1 && <br />}
+              {work.description && (
+                <p className="mt-4 text-purple-100/80 italic whitespace-pre-line">
+                  {work.description}
+                </p>
+              )}
+
+              {(work.achievements?.length || work.technologies?.length) ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {work.achievements?.slice(0, 2).map((item) => (
+                    <span
+                      key={item}
+                      className="text-xs px-2.5 py-1 rounded-full bg-fuchsia-900/35 border border-fuchsia-500/25 text-fuchsia-200/90"
+                    >
+                      {item}
                     </span>
                   ))}
-                </h3>
-                <p className="text-fuchsia-200 font-semibold mb-1">
-                  {work.company}
-                </p>
-                
-                {work.location && (
-                  <p className="text-fuchsia-200/70 text-sm mb-3">
-                    📍 {work.location}
-                  </p>
-                )}
-                
-                {work.description && (
-                  <p className="text-purple-100/80 mb-3 italic whitespace-pre-line">
-                    {work.description}
-                  </p>
-                )}
-                
-                <div className="mt-3 text-xs text-purple-100/60 italic">
-                  Click for details →
+                  {work.technologies?.slice(0, 4).map((item) => (
+                    <span
+                      key={item}
+                      className="text-xs px-2.5 py-1 rounded-full bg-black/30 border border-fuchsia-500/20 text-purple-100/85"
+                    >
+                      {item}
+                    </span>
+                  ))}
                 </div>
-              </button>
-            </div>
+              ) : null}
+
+              <div className="mt-3 text-xs text-purple-100/60 italic">
+                Click for details →
+              </div>
+            </button>
           ))}
         </div>
       </div>
