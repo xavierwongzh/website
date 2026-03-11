@@ -9,7 +9,7 @@ const projects: Project[] = [
     id: "1",
     featured: true,
     mark: "MILP",
-    title: "DUBY\nOptimization-Driven Nurse Rostering (MILP + fallback heuristic)",
+    title: "DUBY (Duty Buddy)\nOptimization-driven nurse rostering",
     description:
       "Automates 14‑day nurse schedules under staffing, labor, and fairness constraints.",
     detailedDescription:
@@ -32,7 +32,7 @@ const projects: Project[] = [
     id: "2",
     featured: true,
     mark: "SIM",
-    title: "Runway Capacity & Surface Ops Simulation — San Diego Intl (KSAN)",
+    title: "San Diego Intl (KSAN)\nRunway capacity & surface operations simulation",
     description:
       "Systems-level runway + ground ops analysis using CAST with realistic demand scenarios.",
     detailedDescription:
@@ -53,7 +53,7 @@ const projects: Project[] = [
     id: "3",
     featured: true,
     mark: "ABM",
-    title: "Pump Protocol — Agent-Based Simulation for Petrol Station Operations",
+    title: "Pump Protocol\nAgent-based simulation for petrol station operations",
     description:
       "Interactive simulation to test station configurations and optimize throughput/profitability.",
     detailedDescription:
@@ -71,7 +71,7 @@ const projects: Project[] = [
   {
     id: "4",
     mark: "QSYS",
-    title: "Queue Optima — Queueing Theory Analysis for Airport Immigration",
+    title: "Queue Optima\nQueueing theory analysis for airport immigration",
     description:
       "M/M/k model to compare queue policies and counter allocations for waiting time + fairness.",
     detailedDescription:
@@ -89,7 +89,7 @@ const projects: Project[] = [
   {
     id: "5",
     mark: "BI",
-    title: "Inventory Forecasting & BOM Planning — Tai Sin Electric (Power BI)",
+    title: "Tai Sin Electric\nInventory forecasting & BOM planning (Power BI)",
     description:
       "Forecasting insights + KPI dashboards to improve inventory visibility and replenishment planning.",
     detailedDescription:
@@ -191,7 +191,7 @@ export function Projects() {
                     </div>
                   )}
                 </div>
-                <h3 className="text-xl font-semibold text-fuchsia-200 mb-2">
+                <h3 className="text-xl font-semibold text-fuchsia-200 mb-2 whitespace-pre-line">
                   {project.title}
                 </h3>
                 <p className="text-purple-100/80 text-sm mb-4">
@@ -237,7 +237,7 @@ export function Projects() {
                   </div>
                 )}
               </div>
-              <h3 className="text-xl font-semibold text-fuchsia-200 mb-2">
+              <h3 className="text-xl font-semibold text-fuchsia-200 mb-2 whitespace-pre-line">
                 {project.title}
               </h3>
               <p className="text-purple-100/80 text-sm mb-4">{project.description}</p>
@@ -288,7 +288,7 @@ export function Projects() {
                 )}
               </div>
               
-              <h3 className="font-outfit text-3xl md:text-4xl text-fuchsia-300 mb-3">
+              <h3 className="font-outfit text-3xl md:text-4xl text-fuchsia-300 mb-3 whitespace-pre-line">
                 {selectedProject.title}
               </h3>
               
