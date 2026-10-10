@@ -1848,7 +1848,7 @@ function drawFallen(f) {
   ctx.fillStyle = rgb(lit(f.b[5] || LEAF_FALL_COLS[((f.a * 10) | 0) % 4], 0.92));
   ctx.beginPath(); ctx.ellipse(x, y, u, u * 0.3, Math.sin(f.a) * 0.5, 0, Math.PI * 2); ctx.fill();
 }
-const PUMPKIN_SPOTS = [[16.2, 11.3, 1.1], [16.25, 11.75, 0.8], [16.0, 12.05, 0.9], [13.2, 9.35, 0.9], [13.25, 9.75, 0.7], [8.2, 14.05, 1], [7.4, 15.1, 0.8], [14.2, 6.95, 0.9]];
+const PUMPKIN_SPOTS = [[16.2, 11.3, 1.1], [16.25, 11.75, 0.8], [16.0, 12.05, 0.9], [13.2, 9.35, 0.9], [13.25, 9.75, 0.7], [6.25, 14.75, 1], [6.05, 14.35, 0.8], [14.2, 6.95, 0.9]];
 const PUMPKINS = PUMPKIN_SPOTS.filter(([x, y]) => insideIsland(x, y, 0.95) && hf(x, y) > WATER_H + 0.15 && lakeD(x, y) > 1.1).map(([x, y, sc], k) => ({ x, y, h: hf(x, y), sc, carved: k === 0 || isHalloween() }));
 function drawPumpkin(p) {
   const [x, y, f] = P(p.x, p.y, p.h), r = TW * f * cam.zoom * 0.1 * p.sc;
