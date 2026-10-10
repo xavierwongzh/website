@@ -741,12 +741,28 @@ function drawTree(t) {
   const up = z => P(t.i, t.j, t.h + z * k);
   groundShadow(t.i + 0.05, t.j + 0.05, t.h, (t.kind === "ginkgo" ? 0.17 : t.kind === "bush" ? 0.2 : 0.24) * t.s);
   const flat = cosP < 0.35;
-  const trunk = (z, col, w) => { const tp = up(z); ctx.strokeStyle = rgb(lit(col)); ctx.lineCap = "round"; ctx.lineWidth = Math.max(1.2, s * w); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(tp[0] + t.lean * s, tp[1]); ctx.stroke(); return [tp[0] + t.lean * s, tp[1]]; };
+  // trunk: a tapered column with a lit left half and a shaded right half
+  const trunk = (z, col, w) => {
+    const tp = up(z), tx = tp[0] + t.lean * s, ty = tp[1], b = Math.max(0.7, s * w * 0.55), u = b * 0.6;
+    poly([[x - b, y], [x, y + b * 0.3], [tx, ty], [tx - u, ty]], rgb(lit(col, 1.02)));
+    poly([[x, y + b * 0.3], [x + b, y], [tx + u, ty], [tx, ty]], rgb(lit(col, 0.7)));
+    return [tx, ty];
+  };
   const blobs = () => {
     const bs = SEASON === "winter" ? 0.82 : 1;
     const pts = t.blobs.map(([bx, bz, br, col, ry]) => { const p = up(bz); return [p[0] + bx * s + t.lean * s * bz * 2, p[1], br * s * bs, col, flat ? 1 : ry || 1]; });
-    for (const [bx, by, br, col, ry] of pts) { ctx.fillStyle = rgb(lit(col, 0.76)); ctx.beginPath(); ctx.ellipse(bx, by, br, br * ry, 0, 0, Math.PI * 2); ctx.fill(); }
-    for (const [bx, by, br, col, ry] of pts) { ctx.fillStyle = rgb(lit(col, 1.06)); ctx.beginPath(); ctx.ellipse(bx - br * 0.25, by - br * ry * 0.3, br * 0.58, br * ry * 0.58, 0, 0, Math.PI * 2); ctx.fill(); }
+    // each blob is a low-poly dome: a ring of facets around a peak nudged toward the light (upper left),
+    // shaded by which way each facet faces; higher blobs first so the lower ones sit in front
+    pts.map((p, q) => [p, q]).sort((a, b) => a[0][1] - b[0][1]).forEach(([[bx, by, br, col, ry], q]) => {
+      const n = 7, seed = hash(t.i * 3.7 + q, t.j * 5.3 - q), a0 = seed * 6.28;
+      const rim = Array.from({ length: n }, (_, k) => { const a = a0 + k / n * Math.PI * 2, r = br * (0.98 + 0.12 * hash(seed * 9 + k, q)); return [bx + Math.cos(a) * r, by + Math.sin(a) * r * ry, a]; });
+      const px = bx - br * 0.22, py = by - br * ry * 0.28;
+      for (let k = 0; k < n; k++) {
+        const A = rim[k], B = rim[(k + 1) % n], mx = (A[0] + B[0]) / 2 - bx, my = ((A[1] + B[1]) / 2 - by) / ry, ml = Math.hypot(mx, my) || 1;
+        const sh = 0.76 + 0.4 * Math.max(0, (-0.62 * mx - 0.78 * my) / ml) - 0.08 * Math.max(0, my / ml);
+        poly([[px, py], A, B], rgb(lit(col, sh)));
+      }
+    });
   };
   if (t.kind === "maple") { trunk(0.36, C.bark, 0.07); blobs(); }
   else if (t.kind === "ginkgo") { trunk(0.42, C.bark, 0.055); blobs(); }
