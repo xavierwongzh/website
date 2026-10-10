@@ -1627,7 +1627,7 @@ function drawNightLights(t) {
   const night = clamp((0.75 - S.light) / 0.4, 0, 1);
   if (night <= 0) return;
   ctx.save(); ctx.globalCompositeOperation = "lighter";
-  if (!occluded(...CW([0, 0, 0.6]))) { const [gx, gy] = P(...CW([0.2, 0, 0.55])); glow(gx, gy, TW * cam.zoom * 0.9, [140, 186, 255], 0.5 * night); }
+  if (!occluded(...CW([0, 0, 0.6]))) { const [gx, gy] = P(...CW([0.2, 0, 0.55])); glow(gx, gy, TW * cam.zoom * 0.45, [140, 186, 255], 0.3 * night); } // laptop screen
   for (const m of MARKS) for (const w of (m.glowW || [])) {
     if (occluded(w[0], w[1], w[2])) continue;
     // the cabin's windows and the pavilion's lamp only spill a soft light, so walls still read as walls and the pond stays dark
