@@ -1671,10 +1671,20 @@ let drag = null, mouse = [-1, -1];
 // two fingers pinch to zoom and slide together to pan; once two fingers are down, nothing else fires until every finger lifts
 const ZOOM_MIN = 0.7, ZOOM_MAX = 2.5;
 const touches = new Map();
-let pinch = null, panX = 0, panY = 0;
+let pinch = null, mpan = null, panX = 0, panY = 0;
 const pinchDist = () => { const [a, b] = [...touches.values()]; return Math.max(1, Math.hypot(a[0] - b[0], a[1] - b[1])); };
 const pinchMid = () => { const [a, b] = [...touches.values()]; return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; };
+const setPan = (x, y) => { panX = clamp(x, -W * 0.45, W * 0.45); panY = clamp(y, -H * 0.35, H * 0.35); };
+// on desktop the middle mouse button (or Shift + drag, for trackpads) pans
+cv.addEventListener("mousedown", e => { if (e.button === 1) e.preventDefault(); }); // no autoscroll
 cv.addEventListener("pointerdown", e => {
+  if (e.pointerType === "mouse" && (e.button === 1 || (e.button === 0 && e.shiftKey))) {
+    e.preventDefault();
+    if (camFocus.on) return;
+    try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+    mpan = { id: e.pointerId, x: e.clientX, y: e.clientY, px: panX, py: panY }; holdYaw = null; cam.yawV = 0; tip.hidden = true; cv.style.cursor = "move";
+    return;
+  }
   if (e.pointerType === "touch") touches.set(e.pointerId, [e.clientX, e.clientY]);
   if (touches.size === 2) {
     for (const id of touches.keys()) try { cv.setPointerCapture(id); } catch (_) {}
@@ -1689,10 +1699,11 @@ cv.addEventListener("pointerdown", e => {
 cv.addEventListener("pointermove", e => {
   const x = e.clientX, y = e.clientY;
   if (touches.has(e.pointerId)) touches.set(e.pointerId, [x, y]);
+  if (mpan) { if (mpan.id === e.pointerId) setPan(mpan.px + x - mpan.x, mpan.py + y - mpan.y); return; }
   if (pinch) {
     if (touches.size === 2) {
       VIEWS[view].zoomUser = clamp(pinch.z * pinchDist() / pinch.d, ZOOM_MIN, ZOOM_MAX);
-      if (!camFocus.on) { const [mx, my] = pinchMid(); panX = clamp(pinch.px + mx - pinch.mx, -W * 0.45, W * 0.45); panY = clamp(pinch.py + my - pinch.my, -H * 0.35, H * 0.35); }
+      if (!camFocus.on) { const [mx, my] = pinchMid(); setPan(pinch.px + mx - pinch.mx, pinch.py + my - pinch.my); }
     }
     return;
   }
@@ -1722,6 +1733,7 @@ cv.addEventListener("pointermove", e => {
 });
 function endDrag(e) {
   touches.delete(e.pointerId);
+  if (mpan) { if (mpan.id === e.pointerId) { mpan = null; releasedAt = performance.now(); cv.style.cursor = "grab"; } return; }
   if (pinch) { releasedAt = performance.now(); if (!touches.size) pinch = null; return; }
   if (!drag || drag.id !== e.pointerId) return;
   const wasDrag = drag.moved, still = performance.now() - drag.lt > 80; drag = null; cv.style.cursor = "grab";
@@ -1776,7 +1788,7 @@ let releasedAt = -Infinity;
 const homeYaw = y => HOME_YAW + Math.round((y - HOME_YAW) / (Math.PI * 2)) * Math.PI * 2;
 function stepCamera(dt) {
   const tv = VIEWS[view], k = 1 - Math.pow(0.004, dt);
-  const resting = !drag && !pinch && !camFocus.on && performance.now() - releasedAt < HOME_DELAY;
+  const resting = !drag && !pinch && !mpan && !camFocus.on && performance.now() - releasedAt < HOME_DELAY;
   if (resting) { cam.yaw += cam.yawV * dt; cam.yawV *= Math.pow(0.02, dt); } else if (!drag) cam.yawV = 0;
   if (!(drag && drag.moved && view === "persp") && !resting) cam.pitch = lerp(cam.pitch, tv.pitch, k);
   cam.persp = lerp(cam.persp, tv.persp, k);
@@ -1784,7 +1796,7 @@ function stepCamera(dt) {
   { const g = 1 - Math.pow(0.06, dt); camFocus.x = lerp(camFocus.x, camFocus.tx, g); camFocus.y = lerp(camFocus.y, camFocus.ty, g); camFocus.h = lerp(camFocus.h, camFocus.th, g); }
   const narrowF = W < 640, fz = 1 + (narrowF ? 0.7 : 0.85) * camFocus.amt;
   cam.zoom = lerp(cam.zoom, tv.zoom * (tv.zoomUser || 1) * fz, k);
-  const homing = !(drag && drag.moved) && !pinch && !resting;
+  const homing = !(drag && drag.moved) && !pinch && !mpan && !resting;
   if (homing) cam.yaw = holdYaw !== null ? holdYaw : lerp(cam.yaw, homeYaw(cam.yaw), 1 - Math.pow(0.03, dt));
   if (homing || camFocus.on) { const g = 1 - Math.pow(0.03, dt); panX = lerp(panX, 0, g); panY = lerp(panY, 0, g); }
   camUpdate();
