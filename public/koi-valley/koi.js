@@ -1576,13 +1576,27 @@ function markAt(x, y) {
   return null;
 }
 let drag = null, mouse = [-1, -1];
+// two fingers pinch to zoom; once a pinch starts, nothing else fires until every finger lifts
+const ZOOM_MIN = 0.7, ZOOM_MAX = 2.5;
+const touches = new Map();
+let pinch = null;
+const pinchDist = () => { const [a, b] = [...touches.values()]; return Math.max(1, Math.hypot(a[0] - b[0], a[1] - b[1])); };
 cv.addEventListener("pointerdown", e => {
+  if (e.pointerType === "touch") touches.set(e.pointerId, [e.clientX, e.clientY]);
+  if (touches.size === 2) {
+    for (const id of touches.keys()) try { cv.setPointerCapture(id); } catch (_) {}
+    pinch = { d: pinchDist(), z: VIEWS[view].zoomUser || 1 }; drag = null; cam.yawV = 0; tip.hidden = true;
+    return;
+  }
+  if (pinch) return;
   holdYaw = null;
   drag = { id: e.pointerId, x: e.clientX, y: e.clientY, lx: e.clientX, lt: performance.now(), yaw: cam.yaw, pitch: cam.pitch, moved: false };
   cam.yawV = 0;
 });
 cv.addEventListener("pointermove", e => {
   const x = e.clientX, y = e.clientY;
+  if (touches.has(e.pointerId)) touches.set(e.pointerId, [x, y]);
+  if (pinch) { if (touches.size === 2) VIEWS[view].zoomUser = clamp(pinch.z * pinchDist() / pinch.d, ZOOM_MIN, ZOOM_MAX); return; }
   if (drag && drag.id === e.pointerId) {
     const dx = x - drag.x, dy = y - drag.y;
     if (!drag.moved && Math.hypot(dx, dy) > 5) { drag.moved = true; try { cv.setPointerCapture(e.pointerId); } catch (_) {} cv.style.cursor = "grabbing"; tip.hidden = true; hint.classList.add("seen"); }
@@ -1608,6 +1622,8 @@ cv.addEventListener("pointermove", e => {
   cv.style.cursor = (f || m || inPond(wi, wj, 0.95) || planeAt(x, y) || caveAt(x, y)) ? "pointer" : camFocus.on ? "default" : "grab";
 });
 function endDrag(e) {
+  touches.delete(e.pointerId);
+  if (pinch) { if (!touches.size) pinch = null; return; }
   if (!drag || drag.id !== e.pointerId) return;
   const wasDrag = drag.moved; drag = null; cv.style.cursor = "grab";
   if (wasDrag) return;
@@ -1638,7 +1654,7 @@ function tap(x, y) {
   for (const t of maples) { const [tx, ty] = P(t.i, t.j, t.h + t.crown); const d = Math.hypot(tx - x, ty - y); if (d < bd) { bd = d; best = t; } }
   if (best) for (let k = 0; k < 12; k++) spawnLeaf(best);
 }
-cv.addEventListener("wheel", e => { e.preventDefault(); VIEWS[view].zoomUser = clamp((VIEWS[view].zoomUser || 1) * Math.exp(-e.deltaY * 0.001), 0.7, 1.8); }, { passive: false });
+cv.addEventListener("wheel", e => { e.preventDefault(); VIEWS[view].zoomUser = clamp((VIEWS[view].zoomUser || 1) * Math.exp(-e.deltaY * 0.001), ZOOM_MIN, ZOOM_MAX); }, { passive: false });
 let holdYaw = null;
 document.querySelectorAll(".chip[data-view]").forEach(b => b.addEventListener("click", () => setView(b.dataset.view)));
 function setSeason(v) {
