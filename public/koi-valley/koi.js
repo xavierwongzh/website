@@ -1625,8 +1625,8 @@ function endDrag(e) {
   touches.delete(e.pointerId);
   if (pinch) { if (!touches.size) pinch = null; return; }
   if (!drag || drag.id !== e.pointerId) return;
-  const wasDrag = drag.moved; drag = null; cv.style.cursor = "grab";
-  if (wasDrag) return;
+  const wasDrag = drag.moved, still = performance.now() - drag.lt > 80; drag = null; cv.style.cursor = "grab";
+  if (wasDrag) { releasedAt = performance.now(); if (still) cam.yawV = 0; cam.yawV = clamp(cam.yawV, -6, 6); return; }
   if (e.type === "pointerup") tap(e.clientX, e.clientY);
 }
 cv.addEventListener("pointerup", endDrag);
@@ -1671,18 +1671,21 @@ function setView(v) {
   view = v;
   document.querySelectorAll(".chip[data-view]").forEach(b => b.setAttribute("aria-pressed", b.dataset.view === v ? "true" : "false"));
 }
-// letting go always eases the island back to its home angle
-const HOME_YAW = Math.PI / 4;
+// after letting go the island glides to a stop and stays put for a few seconds, then eases back to its home angle
+const HOME_YAW = Math.PI / 4, HOME_DELAY = 5000;
+let releasedAt = -Infinity;
 const homeYaw = y => HOME_YAW + Math.round((y - HOME_YAW) / (Math.PI * 2)) * Math.PI * 2;
 function stepCamera(dt) {
   const tv = VIEWS[view], k = 1 - Math.pow(0.004, dt);
-  if (!(drag && drag.moved && view === "persp")) cam.pitch = lerp(cam.pitch, tv.pitch, k);
+  const resting = !drag && !camFocus.on && performance.now() - releasedAt < HOME_DELAY;
+  if (resting) { cam.yaw += cam.yawV * dt; cam.yawV *= Math.pow(0.02, dt); } else if (!drag) cam.yawV = 0;
+  if (!(drag && drag.moved && view === "persp") && !resting) cam.pitch = lerp(cam.pitch, tv.pitch, k);
   cam.persp = lerp(cam.persp, tv.persp, k);
   camFocus.amt = lerp(camFocus.amt, camFocus.on ? 1 : 0, 1 - Math.pow(0.02, dt));
   { const g = 1 - Math.pow(0.06, dt); camFocus.x = lerp(camFocus.x, camFocus.tx, g); camFocus.y = lerp(camFocus.y, camFocus.ty, g); camFocus.h = lerp(camFocus.h, camFocus.th, g); }
   const narrowF = W < 640, fz = 1 + (narrowF ? 0.7 : 0.85) * camFocus.amt;
   cam.zoom = lerp(cam.zoom, tv.zoom * (tv.zoomUser || 1) * fz, k);
-  if (!(drag && drag.moved)) cam.yaw = holdYaw !== null ? holdYaw : lerp(cam.yaw, homeYaw(cam.yaw), 1 - Math.pow(0.03, dt));
+  if (!(drag && drag.moved) && !resting) cam.yaw = holdYaw !== null ? holdYaw : lerp(cam.yaw, homeYaw(cam.yaw), 1 - Math.pow(0.03, dt));
   camUpdate();
   // slide the island so the focused place sits in the middle of what the drawer leaves visible
   OX = BASE_OX; OY = BASE_OY;
