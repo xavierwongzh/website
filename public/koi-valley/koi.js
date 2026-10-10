@@ -1565,8 +1565,11 @@ function drawNightLights(t) {
   }
   if (SEASON !== "winter") for (const f of flies) {
     const x = f.i + Math.sin(t * 0.0004 * f.sp + f.ph) * 0.6, y = f.j + Math.cos(t * 0.0003 * f.sp + f.ph * 1.3) * 0.6;
-    const [sx, sy] = P(x, y, f.h + Math.sin(t * 0.001 + f.ph) * 0.3);
-    glow(sx, sy, 7 * GLOW_K, [220, 255, 150], night * (0.4 + 0.6 * Math.max(0, Math.sin(t * 0.003 * f.sp + f.ph))));
+    const z = f.h + Math.sin(t * 0.001 + f.ph) * 0.3, [sx, sy] = P(x, y, z);
+    // fade out behind the mountain or a hill instead of shining through it
+    f.vis = lerp(f.vis ?? 1, occluded(x, y, z) ? 0 : 1, 0.15);
+    if (f.vis < 0.02) continue;
+    glow(sx, sy, 7 * GLOW_K, [220, 255, 150], f.vis * night * (0.4 + 0.6 * Math.max(0, Math.sin(t * 0.003 * f.sp + f.ph))));
   }
   if (!occluded(...RUNWAY.c, RUNWAY.h + 0.3)) {
     const tp = P(TOWER[0], TOWER[1], hf(...TOWER) + 1.36);
