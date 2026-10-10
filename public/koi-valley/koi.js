@@ -801,9 +801,35 @@ function drawRunwaySeg(q, n) {
 const TOWER = (() => { const { c, rad, tan } = RUNWAY; return [c[0] + rad[0] * 0.75 + tan[0] * 0.9, c[1] + rad[1] * 0.75 + tan[1] * 0.9]; })();
 function drawTower() {
   const [x, y] = TOWER, h = hf(x, y);
-  box(x - 0.13, y - 0.13, x + 0.13, y + 0.13, h, h + 1.0, [222, 214, 200]);
-  box(x - 0.2, y - 0.2, x + 0.2, y + 0.2, h + 1.0, h + 1.24, [110, 168, 192], 1.1);
-  box(x - 0.23, y - 0.23, x + 0.23, y + 0.23, h + 1.24, h + 1.31, [60, 58, 66]);
+  // square frustum centred on the tower: half-width r0 at z0 flaring (or tapering) to r1 at z1
+  const fr = (r0, r1, z0, z1, col, boost) => {
+    const B = (sx, sy) => [x + sx * r0, y + sy * r0, z0], T = (sx, sy) => [x + sx * r1, y + sy * r1, z1];
+    face([B(1, -1), B(1, 1), T(1, 1), T(1, -1)], col, boost);
+    face([B(-1, -1), T(-1, -1), T(-1, 1), B(-1, 1)], col, boost);
+    face([B(-1, 1), T(-1, 1), T(1, 1), B(1, 1)], col, boost);
+    face([B(-1, -1), B(1, -1), T(1, -1), T(-1, -1)], col, boost);
+    face([T(-1, -1), T(1, -1), T(1, 1), T(-1, 1)], col, boost);
+  };
+  const conc = [222, 214, 200], concD = [176, 170, 160], trim = [60, 58, 66], glass = [110, 168, 192];
+  const ax = RUNWAY.rad[0] * 0.26, ay = RUNWAY.rad[1] * 0.26; // the base building sits on the side away from the runway
+  sortedDraw([
+    { c: [x + ax, y + ay], d: () => {
+      box(x + ax - 0.2, y + ay - 0.2, x + ax + 0.2, y + ay + 0.2, h, h + 0.26, concD);
+      box(x + ax - 0.22, y + ay - 0.22, x + ax + 0.22, y + ay + 0.22, h + 0.26, h + 0.3, [112, 108, 114]);
+    } },
+    { c: [x, y], d: () => {
+      fr(0.15, 0.11, h, h + 0.92, conc); // tapering shaft
+      fr(0.138, 0.136, h + 0.42, h + 0.47, concD); // band halfway up
+      fr(0.11, 0.2, h + 0.88, h + 1.0, concD); // flared deck under the cab
+      fr(0.2, 0.235, h + 1.0, h + 1.25, glass, 1.15); // outward-leaning glass
+      for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { const m = 0.217; box(x + sx * m - 0.012, y + sy * m - 0.012, x + sx * m + 0.012, y + sy * m + 0.012, h + 1.01, h + 1.24, trim); }
+      fr(0.255, 0.255, h + 1.25, h + 1.31, trim); // roof with overhang
+      fr(0.14, 0.12, h + 1.31, h + 1.37, concD);
+      const m0 = P(x, y, h + 1.37), m1 = P(x, y, h + 1.6);
+      ctx.strokeStyle = rgb(lit([90, 88, 92])); ctx.lineWidth = Math.max(1, TW * cam.zoom * 0.012); ctx.beginPath(); ctx.moveTo(m0[0], m0[1]); ctx.lineTo(m1[0], m1[1]); ctx.stroke();
+      ctx.fillStyle = rgb(lit([200, 60, 50], 1.2)); ctx.beginPath(); ctx.arc(m1[0], m1[1], Math.max(1.2, TW * cam.zoom * 0.018), 0, Math.PI * 2); ctx.fill();
+    } },
+  ]);
   // windsock
   const wx = RUNWAY.b[0] + RUNWAY.rad[0] * 0.45, wy = RUNWAY.b[1] + RUNWAY.rad[1] * 0.45, wh = hf(wx, wy);
   const p0 = P(wx, wy, wh), p1 = P(wx, wy, wh + 0.8), sway = Math.sin(performance.now() * 0.002) * 0.08;
@@ -1031,6 +1057,40 @@ function drawZenRock(k) {
   for (let q = 0; q < n; q++) { const q1 = (q + 1) % n; face([[...base[q], h], [...base[q1], h], [...top[q1], th], [...top[q], th]], col); }
   face(top.map(([a, b]) => [a, b, th]), col.map(c => c * 1.08));
 }
+// after dark the animals settle down and sleep where they stop; each has its own bedtime so they don't all drop at once
+const bedtime = a => S.light < (a.nap ??= 0.43 + Math.random() * 0.07);
+function drawSleeper(a, u, o) {
+  const h = hf(a.x, a.y), [x, y] = P(a.x, a.y, h);
+  const ah = P(a.x + Math.cos(a.dir) * 0.3, a.y + Math.sin(a.dir) * 0.3, h), face = ah[0] >= x ? 1 : -1;
+  const t = performance.now() / 1000, br = 1 + 0.05 * Math.sin(t * 1.7 + (a.phase || 0) * 3); // slow breathing
+  const E = (cx, cy, rx, ry, rot, col) => { ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(cx * u, cy * u, rx * u, ry * u, rot, 0, Math.PI * 2); ctx.fill(); };
+  const dark = rgb(lit([40, 30, 26]));
+  ctx.fillStyle = rgba([0, 0, 0], 0.16 * S.light); ctx.beginPath(); ctx.ellipse(x, y, u * 0.95, u * 0.28, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.save(); ctx.translate(x, y); ctx.scale(face, 1); ctx.lineCap = "round";
+  if (o.ears === "long") { E(-0.05, -0.62 * br, 0.08, 0.3, 1.25, o.furD); E(0.05, -0.58 * br, 0.08, 0.3, 1.35, o.fur); }
+  E(-0.08, -0.3 * br, 0.68, 0.32 * br, 0, o.fur);
+  if (o.belly) E(0.0, -0.18, 0.5, 0.12, 0, o.belly);
+  if (o.tail) { E(0.12, -0.13, 0.62, 0.15, -0.04, o.fur); E(0.7, -0.15, 0.15, 0.1, -0.1, o.tail); } // brush wrapped round the front
+  // head tucked down at the front, resting on the ground
+  const hx = 0.55, hy = -0.27 - (br - 1) * 0.6;
+  if (o.ears === "fox") for (const [ex, col] of [[-0.12, o.furD], [0.04, o.fur]]) { ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo((hx + ex - 0.08) * u, (hy - 0.12) * u); ctx.lineTo((hx + ex - 0.2) * u, (hy - 0.34) * u); ctx.lineTo((hx + ex + 0.06) * u, (hy - 0.16) * u); ctx.closePath(); ctx.fill(); }
+  if (o.ears === "round") { E(hx - 0.14, hy - 0.2, 0.09, 0.09, 0, o.furD); E(hx + 0.08, hy - 0.22, 0.09, 0.09, 0, o.fur); }
+  if (o.ears === "deer") { E(hx - 0.12, hy - 0.2, 0.05, 0.12, -0.9, o.furD); E(hx + 0.02, hy - 0.22, 0.05, 0.12, -0.5, o.fur); }
+  if (o.antlers) { ctx.strokeStyle = o.antlers; ctx.lineWidth = Math.max(1, u * 0.06); ctx.beginPath(); ctx.moveTo((hx - 0.05) * u, (hy - 0.15) * u); ctx.quadraticCurveTo((hx - 0.35) * u, (hy - 0.45) * u, (hx - 0.3) * u, (hy - 0.7) * u); ctx.moveTo((hx - 0.2) * u, (hy - 0.38) * u); ctx.lineTo((hx - 0.02) * u, (hy - 0.55) * u); ctx.stroke(); }
+  E(hx, hy, 0.24 * (o.head || 1), 0.18 * (o.head || 1), 0.15, o.fur);
+  if (o.muzzle) E(hx + 0.2, hy + 0.05, 0.12, 0.08, 0.1, o.muzzle);
+  ctx.strokeStyle = dark; ctx.lineWidth = Math.max(0.8, u * 0.035); ctx.beginPath(); ctx.arc((hx + 0.06) * u, (hy - 0.04) * u, u * 0.05, 0.2, Math.PI - 0.2); ctx.stroke(); // closed eye
+  ctx.restore();
+  // a couple of z's drifting up
+  ctx.save(); ctx.font = `600 ${Math.max(8, u * 0.42)}px system-ui, sans-serif`; ctx.textAlign = "center";
+  for (let k = 0; k < 2; k++) {
+    const q = (t * 0.35 + (a.phase || 0) * 0.37 + k * 0.5) % 1;
+    ctx.fillStyle = `rgba(232,238,255,${(0.75 * Math.sin(q * Math.PI)).toFixed(3)})`;
+    ctx.fillText("z", x + face * u * (0.45 + q * 0.35), y - u * (0.75 + q * 1.1));
+  }
+  ctx.restore();
+  a.sx = x; a.sy = y - u * 0.3;
+}
 // foxes
 function foxOk(x, y) { const h = hf(x, y); return insideIsland(x, y, 0.9) && lakeD(x, y) > 1.3 && h > WATER_H + 0.35 && h < 4.3 && riverInfo(x, y)[0] > 0.3 && runwayD(x, y) > 0.3 && !MARKS.some(m => Math.hypot(m.i + 0.5 - x, m.j + 0.5 - y) < 1.05) && Math.hypot(x - CAVE.x, y - CAVE.y) > 1.1 && zenD(x, y) > 0.35; }
 function foxPath(x0, y0, x1, y1) { for (let q = 1; q <= 10; q++) if (!foxOk(lerp(x0, x1, q / 10), lerp(y0, y1, q / 10))) return false; return true; }
@@ -1047,7 +1107,11 @@ const foxes = [[14.4, 15.0], [4.4, 11.4], [14.6, 6.8]].map(p => foxHome(...p)).m
 function stepFoxes(dt) {
   for (const f of foxes) {
     f.hop = Math.max(0, f.hop - dt * 1.8); f.scared = Math.max(0, f.scared - dt);
-    if (f.state === "sit") { f.timer -= dt; if (f.timer < 0) foxTarget(f, Math.random() < 0.4); continue; }
+    if (f.state === "sit") {
+      f.sleep = f.scared > 0 || !bedtime(f) ? Math.max(0, (f.sleep || 0) - dt * 3) : Math.min(1, (f.sleep || 0) + dt * 0.8);
+      if (f.sleep > 0 || bedtime(f) && f.scared <= 0) continue; // asleep, or settling down for the night
+      f.timer -= dt; if (f.timer < 0) foxTarget(f, Math.random() < 0.4); continue;
+    }
     const dx = f.tx - f.x, dy = f.ty - f.y, d = Math.hypot(dx, dy);
     if (d < 0.15) { f.state = "sit"; f.timer = 1.5 + Math.random() * 4; f.speed = 0; continue; }
     const da = ((Math.atan2(dy, dx) - f.dir + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
@@ -1062,6 +1126,10 @@ function stepFoxes(dt) {
 const bears = [[13.4, 15.4], [5.2, 9.6]].map(p => foxHome(...p)).map(([x, y], k) => ({ x, y, tx: x, ty: y, dir: 1 + k * 2, state: "sit", timer: 2 + k * 3, phase: k, sitting: 0 }));
 function stepBears(dt, list = bears, speed = 0.32) {
   for (const b of list) {
+    if (b.state === "sit") {
+      b.sleep = bedtime(b) ? Math.min(1, (b.sleep || 0) + dt * 0.8) : Math.max(0, (b.sleep || 0) - dt * 3);
+      if (b.sleep > 0) { b.sitting = 1; continue; }
+    }
     if (b.state === "sit") { b.sitting = Math.min(1, b.sitting + dt * 1.5); b.timer -= dt; if (b.timer < 0) { if (foxTarget(b, false)) b.state = "walk"; else b.timer = 1; } continue; }
     b.sitting = Math.max(0, b.sitting - dt * 2);
     const dx = b.tx - b.x, dy = b.ty - b.y, d = Math.hypot(dx, dy);
@@ -1075,6 +1143,7 @@ function stepBears(dt, list = bears, speed = 0.32) {
 const reindeer = [[12.8, 14.8], [6.2, 10.4]].map(p => foxHome(...p)).map(([x, y], k) => ({ x, y, tx: x, ty: y, dir: 2 + k * 2, state: "sit", timer: 1.5 + k * 2.5, phase: k * 2, sitting: 0 }));
 function drawReindeer(r, o = {}) {
   const h = hf(r.x, r.y), [x, y, sf] = P(r.x, r.y, h), u = TW * sf * cam.zoom * 0.22 * (o.scale || 1);
+  if ((r.sleep || 0) > 0.5) return drawSleeper(r, u * 1.05, { fur: rgb(lit(o.fur || [128, 92, 64])), furD: rgb(lit(o.furD || [96, 68, 48])), belly: rgb(lit([226, 214, 196])), ears: "deer", antlers: o.antlers === false ? null : rgb(lit([206, 184, 150])) });
   const ah = P(r.x + Math.cos(r.dir) * 0.3, r.y + Math.sin(r.dir) * 0.3, h), face = ah[0] >= x ? 1 : -1;
   const fur = rgb(lit(o.fur || [128, 92, 64])), furD = rgb(lit(o.furD || [96, 68, 48])), pale = rgb(lit([226, 214, 196])), antler = rgb(lit([206, 184, 150])), dark = rgb(lit([40, 30, 26]));
   const walk = r.state === "walk" ? r.phase * 1.4 : 0, graze = r.sitting; // standing still: head dips to graze
@@ -1116,12 +1185,13 @@ function stepDeer(dt) {
   const bx = doe.x - Math.cos(doe.dir) * 0.45, by = doe.y - Math.sin(doe.dir) * 0.45, d = Math.hypot(bx - fawn.x, by - fawn.y);
   if (d > 0.12 && foxOk(bx, by)) { fawn.tx = bx; fawn.ty = by; fawn.state = "walk"; }
   if (fawn.state === "walk") stepBears(dt, [fawn], 0.5); else fawn.sitting = doe.sitting;
-  if (fawn.state === "sit") fawn.timer = 0.2;
+  if (fawn.state === "sit") { fawn.timer = 0.2; fawn.sleep = doe.sleep || 0; }
 }
 // spring: rabbits hopping about the meadow, pausing to nibble
 const rabbits = [[6.4, 12.6], [13.2, 13.2], [9.2, 15.4]].map(p => foxHome(...p)).map(([x, y], k) => ({ x, y, tx: x, ty: y, dir: k * 2.1, state: "sit", timer: 0.8 + k, phase: k, sitting: 0 }));
 function drawRabbit(r) {
   const h = hf(r.x, r.y), [x, y0, sf] = P(r.x, r.y, h), u = TW * sf * cam.zoom * 0.16;
+  if ((r.sleep || 0) > 0.5) return drawSleeper(r, u * 1.1, { fur: rgb(lit([170, 140, 112])), furD: rgb(lit([136, 108, 84])), ears: "long", head: 1.1 });
   const ah = P(r.x + Math.cos(r.dir) * 0.3, r.y + Math.sin(r.dir) * 0.3, h), face = ah[0] >= x ? 1 : -1;
   const hop = r.state === "walk" ? Math.abs(Math.sin(r.phase * 1.6)) : 0, y = y0 - hop * u * 0.9;
   const fur = rgb(lit([170, 140, 112])), furD = rgb(lit([136, 108, 84])), pale = rgb(lit([244, 238, 228])), pink = rgb(lit([236, 170, 170]));
@@ -1138,6 +1208,7 @@ function drawRabbit(r) {
 }
 function drawBear(b) {
   const h = hf(b.x, b.y), [x, y, sf] = P(b.x, b.y, h), u = TW * sf * cam.zoom * 0.26;
+  if ((b.sleep || 0) > 0.5) return drawSleeper(b, u * 1.15, { fur: rgb(lit([122, 82, 52])), furD: rgb(lit([92, 60, 38])), belly: rgb(lit([142, 98, 64])), muzzle: rgb(lit([196, 156, 112])), ears: "round", head: 1.25 });
   const ah = P(b.x + Math.cos(b.dir) * 0.3, b.y + Math.sin(b.dir) * 0.3, h), face = ah[0] >= x ? 1 : -1;
   const fur = rgb(lit([122, 82, 52])), furD = rgb(lit([92, 60, 38])), muz = rgb(lit([196, 156, 112])), dark = rgb(lit([40, 30, 24]));
   const walk = b.state === "walk" ? b.phase : 0, sit = b.sitting;
@@ -1159,6 +1230,7 @@ function drawBear(b) {
 }
 function drawFox(f) {
   const h = hf(f.x, f.y), [x, y, sf] = P(f.x, f.y, h), u = TW * sf * cam.zoom * 0.2;
+  if ((f.sleep || 0) > 0.5 && f.hop <= 0) { const wf = SEASON === "winter"; return drawSleeper(f, u * 0.95, { fur: rgb(lit(wf ? [242, 244, 248] : [216, 104, 40])), furD: rgb(lit(wf ? [206, 212, 222] : [170, 74, 30])), tail: rgb(lit([250, 246, 240])), ears: "fox" }); }
   const ah = P(f.x + Math.cos(f.dir) * 0.3, f.y + Math.sin(f.dir) * 0.3, h), face = ah[0] >= x ? 1 : -1;
   const lift = Math.sin(Math.min(1, f.hop) * Math.PI) * u * 1.6 + (f.state === "run" ? Math.abs(Math.sin(f.phase)) * u * 0.2 : 0);
   ctx.fillStyle = rgba([0, 0, 0], 0.16 * S.light); ctx.beginPath(); ctx.ellipse(x, y, u * 0.85, u * 0.26, 0, 0, Math.PI * 2); ctx.fill();
@@ -1572,7 +1644,7 @@ function drawNightLights(t) {
     glow(sx, sy, 7 * GLOW_K, [220, 255, 150], f.vis * night * (0.4 + 0.6 * Math.max(0, Math.sin(t * 0.003 * f.sp + f.ph))));
   }
   if (!occluded(...RUNWAY.c, RUNWAY.h + 0.3)) {
-    const tp = P(TOWER[0], TOWER[1], hf(...TOWER) + 1.36);
+    const tp = P(TOWER[0], TOWER[1], hf(...TOWER) + 1.6);
     if (Math.sin(t * 0.004) > 0.2) glow(tp[0], tp[1], TW * 0.5, [255, 70, 50], 0.8 * night);
     for (let q = 0; q <= 8; q++) for (const sd of [-1, 1]) {
       const m = q / 8, x = lerp(RUNWAY.a[0], RUNWAY.b[0], m) + RUNWAY.rad[0] * RW * 1.15 * sd, y = lerp(RUNWAY.a[1], RUNWAY.b[1], m) + RUNWAY.rad[1] * RW * 1.15 * sd;
