@@ -805,8 +805,17 @@ function drawTower() {
   const ax = RUNWAY.rad[0] * 0.26, ay = RUNWAY.rad[1] * 0.26; // the base building sits on the side away from the runway
   sortedDraw([
     { c: [x + ax, y + ay], d: () => {
-      box(x + ax - 0.2, y + ay - 0.2, x + ax + 0.2, y + ay + 0.2, h, h + 0.26, concD);
-      box(x + ax - 0.22, y + ay - 0.22, x + ax + 0.22, y + ay + 0.22, h + 0.26, h + 0.3, [112, 108, 114]);
+      const bx = x + ax, by = y + ay, r = 0.2, z1 = h + 0.32;
+      box(bx - r, by - r, bx + r, by + r, h, z1, conc);
+      // a window strip on each side that faces the camera, and a door on the side facing away from the runway
+      for (const [nx, ny] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        if (depth(bx + nx, by + ny) <= depth(bx, by)) continue;
+        const px = bx + nx * (r + 0.008), py = by + ny * (r + 0.008), tx = ny ? 0.15 : 0.008, ty = nx ? 0.15 : 0.008;
+        box(px - tx, py - ty, px + tx, py + ty, h + 0.15, h + 0.25, glass, 1.15);
+        const door = nx * RUNWAY.rad[0] + ny * RUNWAY.rad[1] > 0.7;
+        if (door) { const dx = ny ? 0.04 : 0.008, dy = nx ? 0.04 : 0.008; box(px - dx, py - dy, px + dx, py + dy, h, h + 0.13, trim); }
+      }
+      box(bx - r - 0.025, by - r - 0.025, bx + r + 0.025, by + r + 0.025, z1, z1 + 0.04, trim); // roof edge
     } },
     { c: [x, y], d: () => {
       // straight shaft with a band halfway up, drawn bottom to top so nothing paints over what sits above it
