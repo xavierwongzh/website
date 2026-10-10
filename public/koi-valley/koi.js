@@ -1649,8 +1649,6 @@ function drawNightLights(t) {
     // the cabin's windows and the pavilion's lamp only spill a soft light, so walls still read as walls and the pond stays dark
     const soft = m.kind === "cabin" || m.kind === "pavilion", [x, y, f] = P(...w), r = TW * f * cam.zoom * (m.kind === "pavilion" ? 0.6 : soft ? 0.42 : 0.55);
     glow(x, y, r, [255, 180, 90], (soft ? 0.22 : 0.38) * night);
-    if (soft) continue;
-    ctx.fillStyle = `rgba(255,214,140,${0.9 * night})`; ctx.beginPath(); ctx.arc(x, y, Math.max(1.5, TW * 0.035), 0, Math.PI * 2); ctx.fill();
   }
   if (SEASON !== "winter") for (const f of flies) {
     const x = f.i + Math.sin(t * 0.0004 * f.sp + f.ph) * 0.6, y = f.j + Math.cos(t * 0.0003 * f.sp + f.ph * 1.3) * 0.6;
