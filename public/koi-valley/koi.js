@@ -1262,23 +1262,23 @@ function drawMark(m) {
     // and a thick overhanging gable roof with barge boards, a ridge cap and a stone chimney
     const x0 = i + 0.12, x1 = i + 0.92, y0 = j + 0.15, y1 = j + 0.85, wb = h + 0.1, wt = h + 1.1;
     const stoneC = [150, 142, 134], timber = [92, 58, 38], frame = [84, 54, 36], fascia = [52, 40, 46];
+    // windows and the door sit on the outside of a wall: those on walls facing away are drawn before the walls
+    // so the walls hide them, otherwise their frames show through the front of the house
+    const facing = (dx, dy) => depth(i + 0.5 + dx, j + 0.5 + dy) > depth(i + 0.5, j + 0.5);
+    const fittings = [
+      // windows: dark frame, glass set in the frame, a sill below
+      [0, 1, () => { box(i + 0.37, y1, i + 0.65, y1 + 0.03, h + 0.36, h + 0.79, frame); box(i + 0.4, y1 + 0.03, i + 0.62, y1 + 0.035, h + 0.4, h + 0.75, winCol, winBoost); box(i + 0.35, y1, i + 0.67, y1 + 0.07, h + 0.32, h + 0.36, timber); }],
+      [0, -1, () => { box(i + 0.37, y0 - 0.03, i + 0.65, y0, h + 0.36, h + 0.79, frame); box(i + 0.4, y0 - 0.035, i + 0.62, y0 - 0.03, h + 0.4, h + 0.75, winCol, winBoost); }],
+      [1, 0, () => { box(x1, j + 0.35, x1 + 0.03, j + 0.65, h + 0.36, h + 0.79, frame); box(x1 + 0.03, j + 0.38, x1 + 0.035, j + 0.62, h + 0.4, h + 0.75, winCol, winBoost); box(x1, j + 0.33, x1 + 0.07, j + 0.67, h + 0.32, h + 0.36, timber); }],
+      // door on the west wall with a frame and a stone step
+      [-1, 0, () => { box(x0 - 0.12, j + 0.34, x0 - 0.04, j + 0.66, h - 0.06, h + 0.04, stoneC); box(x0 - 0.03, j + 0.35, x0, j + 0.65, wb, h + 0.86, frame); box(x0 - 0.035, j + 0.38, x0 - 0.03, j + 0.62, wb, h + 0.82, C.wood); }],
+    ];
+    for (const [dx, dy, d] of fittings) if (!facing(dx, dy)) d();
     box(x0 - 0.04, y0 - 0.04, x1 + 0.04, y1 + 0.04, h - 0.06, wb, stoneC);
     box(x0, y0, x1, y1, wb, wt, C.plaster);
     for (const [cx, cy] of [[x0, y0], [x1, y0], [x0, y1], [x1, y1]]) box(cx - 0.03, cy - 0.03, cx + 0.03, cy + 0.03, wb, wt, timber);
     box(x0 - 0.02, y0 - 0.02, x1 + 0.02, y1 + 0.02, wt - 0.09, wt, timber);
-    // windows: dark frame, glass set in the frame, a sill below
-    box(i + 0.37, y1, i + 0.65, y1 + 0.03, h + 0.36, h + 0.79, frame);
-    box(i + 0.4, y1 + 0.03, i + 0.62, y1 + 0.035, h + 0.4, h + 0.75, winCol, winBoost);
-    box(i + 0.35, y1, i + 0.67, y1 + 0.07, h + 0.32, h + 0.36, timber);
-    box(i + 0.37, y0 - 0.03, i + 0.65, y0, h + 0.36, h + 0.79, frame);
-    box(i + 0.4, y0 - 0.035, i + 0.62, y0 - 0.03, h + 0.4, h + 0.75, winCol, winBoost);
-    box(x1, j + 0.35, x1 + 0.03, j + 0.65, h + 0.36, h + 0.79, frame);
-    box(x1 + 0.03, j + 0.38, x1 + 0.035, j + 0.62, h + 0.4, h + 0.75, winCol, winBoost);
-    box(x1, j + 0.33, x1 + 0.07, j + 0.67, h + 0.32, h + 0.36, timber);
-    // door on the west wall with a frame and a stone step
-    box(x0 - 0.12, j + 0.34, x0 - 0.04, j + 0.66, h - 0.06, h + 0.04, stoneC);
-    box(x0 - 0.03, j + 0.35, x0, j + 0.65, wb, h + 0.86, frame);
-    box(x0 - 0.035, j + 0.38, x0 - 0.03, j + 0.62, wb, h + 0.82, C.wood);
+    for (const [dx, dy, d] of fittings) if (facing(dx, dy)) d();
     // roof: slopes lifted by the roof thickness, eave and barge strips along the edges
     const zr = wt, zt = h + 1.85, ym = j + 0.5, X0 = i - 0.02, X1 = i + 1.06, Y0 = j - 0.02, Y1 = j + 1.02, t = 0.07;
     face([[X1, Y0, zr], [X1, Y1, zr], [X1, ym, zt]], C.wood);
@@ -1337,7 +1337,7 @@ function drawMark(m) {
     face([[u1, v1, ue + 0.05], [u0, v1, ue + 0.05], UT], C.roof); face([[u0, v1, ue + 0.05], [u0, v0, ue + 0.05], UT], C.roof);
     ridge([[[u0, v0, ue + 0.05], UT], [[u1, v0, ue + 0.05], UT], [[u1, v1, ue + 0.05], UT], [[u0, v1, ue + 0.05], UT]]);
     box(i + 0.47, j + 0.47, i + 0.53, j + 0.53, ut - 0.04, ut + 0.16, [214, 168, 72]);
-    m.glowW = [[i + 0.5, j + 2.3, WATER_H + 0.7]];
+    m.glowW = [[i + 0.5, j + 0.5, h + 0.75]]; // a lamp hung under the eaves
     m.topW = [i + 0.5, j + 0.5, h + 2.3];
   } else if (m.kind === "torii") {
     sortedDraw([
@@ -1630,10 +1630,10 @@ function drawNightLights(t) {
   if (!occluded(...CW([0, 0, 0.6]))) { const [gx, gy] = P(...CW([0.2, 0, 0.55])); glow(gx, gy, TW * cam.zoom * 0.9, [140, 186, 255], 0.5 * night); }
   for (const m of MARKS) for (const w of (m.glowW || [])) {
     if (occluded(w[0], w[1], w[2])) continue;
-    // the cabin's windows already glow on their own, so its spill light stays soft enough that the walls still read as walls
-    const cabin = m.kind === "cabin", [x, y, f] = P(...w), r = TW * f * cam.zoom * (m.kind === "pavilion" ? 1.2 : cabin ? 0.6 : 0.9);
-    glow(x, y, r, [255, 180, 90], (cabin ? 0.28 : 0.5) * night);
-    if (cabin) continue;
+    // the cabin's windows and the pavilion's lamp only spill a soft light, so walls still read as walls and the pond stays dark
+    const soft = m.kind === "cabin" || m.kind === "pavilion", [x, y, f] = P(...w), r = TW * f * cam.zoom * (m.kind === "pavilion" ? 0.8 : soft ? 0.6 : 0.9);
+    glow(x, y, r, [255, 180, 90], (soft ? 0.28 : 0.5) * night);
+    if (soft) continue;
     ctx.fillStyle = `rgba(255,214,140,${0.9 * night})`; ctx.beginPath(); ctx.arc(x, y, Math.max(1.5, TW * 0.035), 0, Math.PI * 2); ctx.fill();
   }
   if (SEASON !== "winter") for (const f of flies) {
