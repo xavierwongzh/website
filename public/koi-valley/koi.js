@@ -1670,7 +1670,7 @@ function renderScene(t) {
   let rk;
   { const { a, b, rad } = RUNWAY, w = 0.3; rk = frontKey([[a[0] + rad[0] * w, a[1] + rad[1] * w], [a[0] - rad[0] * w, a[1] - rad[1] * w], [b[0] + rad[0] * w, b[1] + rad[1] * w], [b[0] - rad[0] * w, b[1] - rad[1] * w]], RUNWAY.h) + 0.05;
     items.push([rk, () => { for (let q = 0; q < RN; q++) drawRunwaySeg(q, RN); }]); RWY_KEY = rk; }
-  items.push([depthKey(TOWER[0], TOWER[1], RUNWAY.h) + bias, drawTower]);
+  items.push([Math.max(depthKey(TOWER[0], TOWER[1], RUNWAY.h) + bias, rk + 0.01), drawTower]); // stands beside the runway, so never under it
   items.push([frontKey([[-0.6, -0.55], [0.8, -0.55], [0.8, 0.55], [-0.6, 0.55]].map(([u, v]) => CW([u, v, 0])), CAVE.h) + 0.05, () => drawMe(t)]);
   for (const s2 of STONES) items.push([depthKey(s2.x, s2.y, s2.h) + 0.25, () => drawStone(s2)]);
   items.push([depthKey(DOCK.x + DOCK.ax * 0.4, DOCK.y + DOCK.ay * 0.4, WATER_H) + 0.35, drawDockParts]);
