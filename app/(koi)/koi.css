@@ -85,6 +85,9 @@ body {
   transition: opacity .35s ease;
 }
 body.focused .hint { opacity: 0; pointer-events: none; }
+/* the zoomed-in view runs under the name, so it steps aside while a card is open */
+.ident { transition: opacity .35s ease; }
+body.drawer-open .ident { opacity: 0; pointer-events: none; }
 [hidden].chrome { display: none !important; }
 .hint b { color: var(--ink); font-weight: 700; }
 
@@ -144,7 +147,7 @@ body.focused .hint { opacity: 0; pointer-events: none; }
   border: 1px solid var(--line); background: transparent; color: var(--ink);
   font-size: 18px; cursor: pointer;
 }
-.drawer .body { overflow-y: auto; padding: 18px 22px calc(28px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 18px; }
+.drawer .body { touch-action: pan-y; overflow-y: auto; padding: 18px 22px calc(28px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 18px; }
 .drawer p { margin: 0; line-height: 1.65; font-size: 15px; max-width: 62ch; }
 .drawer .muted { color: var(--ink-soft); }
 .entry { display: grid; gap: 4px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
@@ -181,5 +184,8 @@ body.focused .hint { opacity: 0; pointer-events: none; }
   .tag-btn { font-size: 10px; padding: 6px 8px 5px; }
   .drawer { top: auto; height: 78%; width: 100%; border-left: 0; border-top: 1px solid var(--line); border-radius: 18px 18px 0 0; transform: translateY(104%); }
   .drawer.open { transform: translateY(0); }
+  .drawer header { touch-action: none; }
+  .drawer .body { overscroll-behavior: contain; }
+  .drawer header::before { content: ""; position: absolute; top: 7px; left: 50%; width: 38px; height: 4px; margin-left: -19px; border-radius: 2px; background: var(--line); }
 }
 @media (prefers-reduced-motion: reduce) { .drawer { transition: none; } }

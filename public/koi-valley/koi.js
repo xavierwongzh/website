@@ -156,13 +156,15 @@ const dTitle = document.getElementById("dTitle"), dEyebrow = document.getElement
 let lastFocus = null;
 function openDrawer(eyebrow, title, html) {
   dEyebrow.textContent = eyebrow; dTitle.textContent = title; dBody.innerHTML = html;
-  dBody.scrollTop = 0;
+  dBody.scrollTop = 0; drawer.dataset.view = "";
   lastFocus = document.activeElement;
+  document.body.classList.add("drawer-open");
   drawer.classList.add("open"); drawer.setAttribute("aria-hidden", "false");
   document.getElementById("dClose").focus({ preventScroll: true });
 }
 function closeDrawer() {
   camFocus.on = false; document.body.classList.remove("focused");
+  document.body.classList.remove("drawer-open");
   drawer.classList.remove("open"); drawer.setAttribute("aria-hidden", "true");
   if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
 }
@@ -191,7 +193,55 @@ function openProject(id) {
     ${p.outcomes ? `<div class="entry"><h3>Outcomes</h3>${list(p.outcomes)}</div>` : ""}
     <div class="pills">${p.tags.map(t => `<span>${esc(t)}</span>`).join("")}</div>
     ${p.links ? `<p class="links">${p.links.map(([l, u]) => `<a href="${u}" target="_blank" rel="noopener">${esc(l)} ↗</a>`).join("")}</p>` : ""}`);
+  drawer.dataset.view = "project";
 }
+// touch gestures: on phones the drawer is a bottom sheet that a downward swipe closes
+// (from the header, or from the body once it is scrolled to the top); on a project page
+// a swipe to the right goes back to the projects list
+const sheetMQ = matchMedia("(max-width: 640px)");
+let sw = null;
+function swipeReset(el, animate) {
+  el.style.transition = animate ? "" : "none";
+  el.style.transform = ""; el.style.opacity = "";
+  if (!animate) { void el.offsetWidth; el.style.transition = ""; }
+}
+drawer.addEventListener("touchstart", e => {
+  if (e.touches.length !== 1 || !drawer.classList.contains("open")) { sw = null; return; }
+  const t = e.touches[0];
+  sw = { x: t.clientX, y: t.clientY, t: performance.now(), axis: null, dx: 0, dy: 0,
+    fromTop: !!e.target.closest(".drawer header") || dBody.scrollTop <= 0 };
+}, { passive: true });
+drawer.addEventListener("touchmove", e => {
+  if (!sw) return;
+  const t = e.touches[0]; sw.dx = t.clientX - sw.x; sw.dy = t.clientY - sw.y;
+  if (!sw.axis) {
+    if (Math.hypot(sw.dx, sw.dy) < 4) return;
+    if (Math.abs(sw.dy) > Math.abs(sw.dx) * 1.2 && sw.dy > 0 && sw.fromTop && sheetMQ.matches) sw.axis = "y";
+    else if (Math.abs(sw.dx) > Math.abs(sw.dy) * 1.2 && sw.dx > 0 && drawer.dataset.view === "project") sw.axis = "x";
+    else { sw = null; return; }
+  }
+  e.preventDefault();
+  if (sw.axis === "y") { drawer.style.transition = "none"; drawer.style.transform = `translateY(${Math.max(0, sw.dy)}px)`; }
+  else { const d = Math.max(0, sw.dx); dBody.style.transition = "none"; dBody.style.transform = `translateX(${d}px)`; dBody.style.opacity = String(1 - Math.min(0.6, d / 400)); }
+}, { passive: false });
+function swipeEnd() {
+  if (!sw || !sw.axis) { sw = null; return; }
+  const dt = Math.max(1, performance.now() - sw.t), g = sw; sw = null;
+  if (g.axis === "y") {
+    if (g.dy > Math.min(120, drawer.offsetHeight * 0.25) || g.dy / dt > 0.5) { swipeReset(drawer, true); closeDrawer(); }
+    else swipeReset(drawer, true);
+  } else if (g.dx > 90 || g.dx / dt > 0.5) {
+    openPlace("projects");
+    // the list slides in from the left, as if the project page was pushed off to the right
+    dBody.style.transition = "none"; dBody.style.transform = "translateX(-28px)"; dBody.style.opacity = "0";
+    void dBody.offsetWidth;
+    dBody.style.transition = "transform .28s cubic-bezier(.2,.8,.2,1), opacity .28s ease"; dBody.style.transform = ""; dBody.style.opacity = "";
+  } else {
+    dBody.style.transition = "transform .25s ease, opacity .25s ease"; dBody.style.transform = ""; dBody.style.opacity = "";
+  }
+}
+drawer.addEventListener("touchend", swipeEnd);
+drawer.addEventListener("touchcancel", swipeEnd);
 document.getElementById("dClose").addEventListener("click", closeDrawer);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && drawer.classList.contains("open")) closeDrawer(); });
 dBody.addEventListener("click", e => {
@@ -564,6 +614,7 @@ const VIEWS = {
 };
 let view = "iso";
 const cam = { yaw: Math.PI / 4, pitch: Math.PI / 6, persp: 0, zoom: 1, yawV: 0 };
+let GLOW_A = 1, GLOW_K = 1;
 let W = 0, H = 0, DPR = 1, TW = 40, BASE_S = 28, SC = 28, OX = 0, OY = 0, BASE_OX = 0, BASE_OY = 0;
 // opening a place eases the camera in on it, framed beside the drawer; closing eases back out
 const camFocus = { on: false, amt: 0, x: 0, y: 0, h: 0, tx: 0, ty: 0, th: 0 };
@@ -576,6 +627,8 @@ function resize() {
   TW = Math.min(W / (N * (narrow ? 0.76 : 1.0)), (H * (narrow ? 0.66 : 1.06)) / (N * 0.5 + 8.5));
   TW = Math.max(16, Math.min(TW, 84));
   BASE_S = TW / Math.SQRT2;
+  // fixed-size night lights read far bigger on a small island, so phones get smaller, softer ones
+  GLOW_K = clamp(TW / 54, 0.45, 1); GLOW_A = narrow ? 0.55 : 1;
   OX = BASE_OX = W / 2 + TW * 0.2;
   OY = BASE_OY = narrow ? H * 0.4 + TW * 0.38 : H * 0.53;
 }
@@ -1406,7 +1459,7 @@ function drawLeaves() {
   }
 }
 const flies = Array.from({ length: 26 }, () => { const t = trees[(Math.random() * trees.length) | 0] || { i: 9, j: 9, h: 2 }; return { i: t.i, j: t.j, h: t.h + 0.6, ph: Math.random() * 10, sp: 0.5 + Math.random() }; });
-function glow(x, y, r, c0, a) { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, rgba(c0, a)); g.addColorStop(1, rgba(c0, 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+function glow(x, y, r, c0, a) { a *= GLOW_A; const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, rgba(c0, a)); g.addColorStop(1, rgba(c0, 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
 function drawNightLights(t) {
   const night = clamp((0.75 - S.light) / 0.4, 0, 1);
   if (night <= 0) return;
@@ -1421,14 +1474,14 @@ function drawNightLights(t) {
   if (SEASON !== "winter") for (const f of flies) {
     const x = f.i + Math.sin(t * 0.0004 * f.sp + f.ph) * 0.6, y = f.j + Math.cos(t * 0.0003 * f.sp + f.ph * 1.3) * 0.6;
     const [sx, sy] = P(x, y, f.h + Math.sin(t * 0.001 + f.ph) * 0.3);
-    glow(sx, sy, 7, [220, 255, 150], night * (0.4 + 0.6 * Math.max(0, Math.sin(t * 0.003 * f.sp + f.ph))));
+    glow(sx, sy, 7 * GLOW_K, [220, 255, 150], night * (0.4 + 0.6 * Math.max(0, Math.sin(t * 0.003 * f.sp + f.ph))));
   }
   if (!occluded(...RUNWAY.c, RUNWAY.h + 0.3)) {
     const tp = P(TOWER[0], TOWER[1], hf(...TOWER) + 1.36);
     if (Math.sin(t * 0.004) > 0.2) glow(tp[0], tp[1], TW * 0.5, [255, 70, 50], 0.8 * night);
     for (let q = 0; q <= 8; q++) for (const sd of [-1, 1]) {
       const m = q / 8, x = lerp(RUNWAY.a[0], RUNWAY.b[0], m) + RUNWAY.rad[0] * RW * 1.15 * sd, y = lerp(RUNWAY.a[1], RUNWAY.b[1], m) + RUNWAY.rad[1] * RW * 1.15 * sd;
-      const [sx, sy] = P(x, y, RUNWAY.h + 0.05); glow(sx, sy, 5, [255, 200, 120], 0.8 * night);
+      const [sx, sy] = P(x, y, RUNWAY.h + 0.05); glow(sx, sy, 5 * GLOW_K, [255, 200, 120], 0.8 * night);
     }
   }
   if (!occluded(LAKE.cx, LAKE.cy, WATER_H + 0.2)) for (const f of koi) if (f.sx) glow(f.sx, f.sy, TW * 0.4, [255, 180, 120], 0.18 * night);
