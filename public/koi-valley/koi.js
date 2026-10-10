@@ -801,15 +801,6 @@ function drawRunwaySeg(q, n) {
 const TOWER = (() => { const { c, rad, tan } = RUNWAY; return [c[0] + rad[0] * 0.75 + tan[0] * 0.9, c[1] + rad[1] * 0.75 + tan[1] * 0.9]; })();
 function drawTower() {
   const [x, y] = TOWER, h = hf(x, y);
-  // square frustum centred on the tower: half-width r0 at z0 flaring (or tapering) to r1 at z1
-  const fr = (r0, r1, z0, z1, col, boost) => {
-    const B = (sx, sy) => [x + sx * r0, y + sy * r0, z0], T = (sx, sy) => [x + sx * r1, y + sy * r1, z1];
-    face([B(1, -1), B(1, 1), T(1, 1), T(1, -1)], col, boost);
-    face([B(-1, -1), T(-1, -1), T(-1, 1), B(-1, 1)], col, boost);
-    face([B(-1, 1), T(-1, 1), T(1, 1), B(1, 1)], col, boost);
-    face([B(-1, -1), B(1, -1), T(1, -1), T(-1, -1)], col, boost);
-    face([T(-1, -1), T(1, -1), T(1, 1), T(-1, 1)], col, boost);
-  };
   const conc = [222, 214, 200], concD = [176, 170, 160], trim = [60, 58, 66], glass = [110, 168, 192];
   const ax = RUNWAY.rad[0] * 0.26, ay = RUNWAY.rad[1] * 0.26; // the base building sits on the side away from the runway
   sortedDraw([
@@ -818,13 +809,19 @@ function drawTower() {
       box(x + ax - 0.22, y + ay - 0.22, x + ax + 0.22, y + ay + 0.22, h + 0.26, h + 0.3, [112, 108, 114]);
     } },
     { c: [x, y], d: () => {
-      fr(0.15, 0.11, h, h + 0.92, conc); // tapering shaft
-      fr(0.138, 0.136, h + 0.42, h + 0.47, concD); // band halfway up
-      fr(0.11, 0.2, h + 0.88, h + 1.0, concD); // flared deck under the cab
-      fr(0.2, 0.235, h + 1.0, h + 1.25, glass, 1.15); // outward-leaning glass
-      for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { const m = 0.217; box(x + sx * m - 0.012, y + sy * m - 0.012, x + sx * m + 0.012, y + sy * m + 0.012, h + 1.01, h + 1.24, trim); }
-      fr(0.255, 0.255, h + 1.25, h + 1.31, trim); // roof with overhang
-      fr(0.14, 0.12, h + 1.31, h + 1.37, concD);
+      // straight shaft with a band halfway up, drawn bottom to top so nothing paints over what sits above it
+      box(x - 0.12, y - 0.12, x + 0.12, y + 0.12, h, h + 0.46, conc);
+      box(x - 0.135, y - 0.135, x + 0.135, y + 0.135, h + 0.46, h + 0.5, concD);
+      box(x - 0.12, y - 0.12, x + 0.12, y + 0.12, h + 0.5, h + 0.95, conc);
+      box(x - 0.2, y - 0.2, x + 0.2, y + 0.2, h + 0.95, h + 1.0, concD); // deck under the cab
+      // glass cab with corner frames: the far frames go behind the glass, the near ones in front
+      const post = (sx, sy) => { const m = 0.18; box(x + sx * m - 0.014, y + sy * m - 0.014, x + sx * m + 0.014, y + sy * m + 0.014, h + 1.0, h + 1.24, trim); };
+      const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]], near = ([sx, sy]) => depth(x + sx, y + sy) > depth(x, y);
+      corners.filter(c => !near(c)).forEach(c => post(...c));
+      box(x - 0.18, y - 0.18, x + 0.18, y + 0.18, h + 1.0, h + 1.24, glass, 1.15);
+      corners.filter(near).forEach(c => post(...c));
+      box(x - 0.23, y - 0.23, x + 0.23, y + 0.23, h + 1.24, h + 1.3, trim); // roof with overhang
+      box(x - 0.1, y - 0.1, x + 0.1, y + 0.1, h + 1.3, h + 1.37, concD);
       const m0 = P(x, y, h + 1.37), m1 = P(x, y, h + 1.6);
       ctx.strokeStyle = rgb(lit([90, 88, 92])); ctx.lineWidth = Math.max(1, TW * cam.zoom * 0.012); ctx.beginPath(); ctx.moveTo(m0[0], m0[1]); ctx.lineTo(m1[0], m1[1]); ctx.stroke();
       ctx.fillStyle = rgb(lit([200, 60, 50], 1.2)); ctx.beginPath(); ctx.arc(m1[0], m1[1], Math.max(1.2, TW * cam.zoom * 0.018), 0, Math.PI * 2); ctx.fill();
