@@ -1343,11 +1343,22 @@ function drawMark(m) {
     sortedDraw([
       { c: [i + 0.25, j + 0.5], d: () => box(i + 0.2, j + 0.45, i + 0.3, j + 0.55, h, h + 1.25, C.torii) },
       { c: [i + 0.75, j + 0.5], d: () => box(i + 0.7, j + 0.45, i + 0.8, j + 0.55, h, h + 1.25, C.torii) },
-      { c: [i + 0.5, j + 0.2], d: () => box(i + 0.42, j + 0.1, i + 0.58, j + 0.3, h, h + 0.35, [150, 146, 140]) },
+      { c: [i + 0.5, j + 0.2], d: () => {
+        // a small stone lantern behind the gate: stepped base, pillar, lit firebox in a dark frame, peaked cap
+        const cx = i + 0.5, cy = j + 0.2, st = [150, 146, 140], stD = [112, 108, 106], ink = [52, 48, 52], paper = [236, 220, 190];
+        const L = (r, z0, z1, col, b) => box(cx - r, cy - r, cx + r, cy + r, h + z0, h + z1, col, b);
+        L(0.11, 0, 0.05, stD); L(0.04, 0.05, 0.3, st); L(0.09, 0.3, 0.35, st);
+        L(0.065, 0.35, 0.5, ink); L(0.05, 0.36, 0.49, paper, night ? 1.4 / Math.max(0.3, S.light) : 1);
+        L(0.11, 0.5, 0.53, ink);
+        const r = 0.11, z = h + 0.53, T = [cx, cy, h + 0.66];
+        face([[cx - r, cy - r, z], [cx + r, cy - r, z], T], st); face([[cx + r, cy - r, z], [cx + r, cy + r, z], T], st);
+        face([[cx + r, cy + r, z], [cx - r, cy + r, z], T], st); face([[cx - r, cy + r, z], [cx - r, cy - r, z], T], st);
+        L(0.018, 0.63, 0.7, stD);
+      } },
     ]);
     box(i + 0.12, j + 0.46, i + 0.88, j + 0.54, h + 0.95, h + 1.03, C.torii);
     box(i - 0.02, j + 0.42, i + 1.02, j + 0.58, h + 1.25, h + 1.38, [44, 34, 38]);
-    m.glowW = [[i + 0.5, j + 0.2, h + 0.45]];
+    m.glowW = [[i + 0.5, j + 0.2, h + 0.43]];
     m.topW = [i + 0.5, j + 0.5, h + 1.7];
   } else if (m.kind === "lantern") {
     // a stone tōrō: stepped base, pillar, platform, a glowing paper box in a dark frame and an eaved cap,
