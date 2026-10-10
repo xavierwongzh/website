@@ -1198,19 +1198,43 @@ function drawMark(m) {
   const { i, j, h } = m;
   const night = S.light < 0.7, winCol = night ? [255, 196, 110] : [70, 80, 96], winBoost = night ? 1.6 / Math.max(0.3, S.light) : 1;
   if (m.kind === "cabin") {
-    const x0 = i + 0.12, x1 = i + 0.92, y0 = j + 0.15, y1 = j + 0.85;
-    box(x0, y0, x1, y1, h, h + 1.1, C.plaster);
-    box(i + 0.4, y1, i + 0.62, y1 + 0.02, h + 0.4, h + 0.75, winCol, winBoost);
-    box(i + 0.4, y0 - 0.02, i + 0.62, y0, h + 0.4, h + 0.75, winCol, winBoost);
-    box(x1, j + 0.38, x1 + 0.02, j + 0.62, h + 0.4, h + 0.75, winCol, winBoost);
-    box(x0 - 0.02, j + 0.38, x0, j + 0.62, h, h + 0.8, C.wood);
-    const zr = h + 1.1, zt = h + 1.85, ym = j + 0.5, X0 = i + 0.02, X1 = i + 1.02, Y0 = j + 0.05, Y1 = j + 0.95;
-    face([[X0, Y0, zr], [X1, Y0, zr], [X1, ym, zt], [X0, ym, zt]], C.roof);
-    face([[X0, ym, zt], [X1, ym, zt], [X1, Y1, zr], [X0, Y1, zr]], C.roof);
+    // stone footing, timber corner posts and a top beam, framed windows with sills, a door with a step,
+    // and a thick overhanging gable roof with barge boards, a ridge cap and a stone chimney
+    const x0 = i + 0.12, x1 = i + 0.92, y0 = j + 0.15, y1 = j + 0.85, wb = h + 0.1, wt = h + 1.1;
+    const stoneC = [150, 142, 134], timber = [92, 58, 38], frame = [84, 54, 36], fascia = [52, 40, 46];
+    box(x0 - 0.04, y0 - 0.04, x1 + 0.04, y1 + 0.04, h - 0.06, wb, stoneC);
+    box(x0, y0, x1, y1, wb, wt, C.plaster);
+    for (const [cx, cy] of [[x0, y0], [x1, y0], [x0, y1], [x1, y1]]) box(cx - 0.03, cy - 0.03, cx + 0.03, cy + 0.03, wb, wt, timber);
+    box(x0 - 0.02, y0 - 0.02, x1 + 0.02, y1 + 0.02, wt - 0.09, wt, timber);
+    // windows: dark frame, glass set in the frame, a sill below
+    box(i + 0.37, y1, i + 0.65, y1 + 0.03, h + 0.36, h + 0.79, frame);
+    box(i + 0.4, y1 + 0.03, i + 0.62, y1 + 0.035, h + 0.4, h + 0.75, winCol, winBoost);
+    box(i + 0.35, y1, i + 0.67, y1 + 0.07, h + 0.32, h + 0.36, timber);
+    box(i + 0.37, y0 - 0.03, i + 0.65, y0, h + 0.36, h + 0.79, frame);
+    box(i + 0.4, y0 - 0.035, i + 0.62, y0 - 0.03, h + 0.4, h + 0.75, winCol, winBoost);
+    box(x1, j + 0.35, x1 + 0.03, j + 0.65, h + 0.36, h + 0.79, frame);
+    box(x1 + 0.03, j + 0.38, x1 + 0.035, j + 0.62, h + 0.4, h + 0.75, winCol, winBoost);
+    box(x1, j + 0.33, x1 + 0.07, j + 0.67, h + 0.32, h + 0.36, timber);
+    // door on the west wall with a frame and a stone step
+    box(x0 - 0.12, j + 0.34, x0 - 0.04, j + 0.66, h - 0.06, h + 0.04, stoneC);
+    box(x0 - 0.03, j + 0.35, x0, j + 0.65, wb, h + 0.86, frame);
+    box(x0 - 0.035, j + 0.38, x0 - 0.03, j + 0.62, wb, h + 0.82, C.wood);
+    // roof: slopes lifted by the roof thickness, eave and barge strips along the edges
+    const zr = wt, zt = h + 1.85, ym = j + 0.5, X0 = i - 0.02, X1 = i + 1.06, Y0 = j - 0.02, Y1 = j + 1.02, t = 0.07;
     face([[X1, Y0, zr], [X1, Y1, zr], [X1, ym, zt]], C.wood);
     face([[X0, Y0, zr], [X0, ym, zt], [X0, Y1, zr]], C.wood);
-    m.glowW = [[i + 0.51, y1 + 0.03, h + 0.58], [i + 0.51, y0 - 0.03, h + 0.58], [x1 + 0.03, j + 0.5, h + 0.58]];
-    m.topW = [i + 0.5, j + 0.5, h + 2.1];
+    face([[X0, Y0, zr - t], [X1, Y0, zr - t], [X1, Y0, zr], [X0, Y0, zr]], fascia);
+    face([[X0, Y1, zr - t], [X0, Y1, zr], [X1, Y1, zr], [X1, Y1, zr - t]], fascia);
+    face([[X1, Y0, zr - t], [X1, ym, zt - t], [X1, ym, zt], [X1, Y0, zr]], fascia); face([[X1, ym, zt - t], [X1, Y1, zr - t], [X1, Y1, zr], [X1, ym, zt]], fascia);
+    face([[X0, Y0, zr - t], [X0, Y0, zr], [X0, ym, zt], [X0, ym, zt - t]], fascia); face([[X0, ym, zt - t], [X0, ym, zt], [X0, Y1, zr], [X0, Y1, zr - t]], fascia);
+    sortedDraw([
+      { c: [i + 0.5, j + 0.2], d: () => face([[X0, Y0, zr], [X1, Y0, zr], [X1, ym, zt], [X0, ym, zt]], C.roof) },
+      { c: [i + 0.73, j + 0.3], d: () => { box(i + 0.66, j + 0.24, i + 0.8, j + 0.38, zr + 0.2, zt + 0.4, [132, 98, 84]); box(i + 0.64, j + 0.22, i + 0.82, j + 0.4, zt + 0.4, zt + 0.46, [96, 74, 66]); } },
+      { c: [i + 0.5, j + 0.8], d: () => face([[X0, ym, zt], [X1, ym, zt], [X1, Y1, zr], [X0, Y1, zr]], C.roof) },
+    ]);
+    box(X0, ym - 0.035, X1, ym + 0.035, zt - 0.02, zt + 0.04, fascia);
+    m.glowW = [[i + 0.51, y1 + 0.05, h + 0.58], [i + 0.51, y0 - 0.05, h + 0.58], [x1 + 0.05, j + 0.5, h + 0.58]];
+    m.topW = [i + 0.5, j + 0.5, h + 2.15];
   } else if (m.kind === "pavilion") {
     // a stone plinth with a front step, a timber floor shaded under the eaves, railed posts with
     // a beam ring, and a two-tier hipped roof with thick eaves and a finial
@@ -1266,12 +1290,33 @@ function drawMark(m) {
     m.glowW = [[i + 0.5, j + 0.2, h + 0.45]];
     m.topW = [i + 0.5, j + 0.5, h + 1.7];
   } else if (m.kind === "lantern") {
+    // a stone tōrō: stepped base, pillar, platform, a glowing paper box in a dark frame and an eaved cap,
+    // with the red post box beside it on its own little post
+    const st = [150, 146, 142], stD = [112, 108, 106], ink = [52, 48, 52], paper = [236, 220, 190], glowB = night ? 1.4 / Math.max(0.3, S.light) : 1;
+    const L = (a0, a1, z0, z1, col, b) => box(i + a0, j + a0, i + a1, j + a1, h + z0, h + z1, col, b);
     sortedDraw([
-      { c: [i + 0.5, j + 0.5], d: () => { box(i + 0.44, j + 0.44, i + 0.56, j + 0.56, h, h + 0.95, [60, 58, 62]); box(i + 0.33, j + 0.33, i + 0.67, j + 0.67, h + 0.95, h + 1.3, [236, 220, 190], night ? 1.4 / Math.max(0.3, S.light) : 1); box(i + 0.28, j + 0.28, i + 0.72, j + 0.72, h + 1.3, h + 1.4, [60, 58, 62]); } },
-      { c: [i + 0.85, j + 0.32], d: () => box(i + 0.7, j + 0.2, i + 1.0, j + 0.45, h, h + 0.55, C.roofRed) },
+      { c: [i + 0.5, j + 0.5], d: () => {
+        L(0.28, 0.72, 0, 0.08, stD); L(0.34, 0.66, 0.08, 0.16, st); L(0.43, 0.57, 0.16, 0.78, st); L(0.32, 0.68, 0.78, 0.88, st);
+        const fz0 = h + 0.88, fz1 = h + 1.22, q0 = 0.35, q1 = 0.65, fw = 0.035;
+        sortedDraw([
+          ...[[q0, q0], [q1, q0], [q0, q1], [q1, q1]].map(([px, py]) => ({ c: [i + px, j + py], d: () => box(i + px - fw, j + py - fw, i + px + fw, j + py + fw, fz0, fz1, ink) })),
+          { c: [i + 0.5, j + 0.5], d: () => L(0.37, 0.63, 0.88, 1.22, paper, glowB) },
+        ]);
+        L(0.26, 0.74, 1.22, 1.28, ink);
+        const r0 = i + 0.24, r1 = i + 0.76, s0 = j + 0.24, s1 = j + 0.76, rz = h + 1.28, RT = [i + 0.5, j + 0.5, h + 1.52];
+        face([[r0, s0, rz], [r1, s0, rz], RT], st); face([[r1, s0, rz], [r1, s1, rz], RT], st);
+        face([[r1, s1, rz], [r0, s1, rz], RT], st); face([[r0, s1, rz], [r0, s0, rz], RT], st);
+        L(0.47, 0.53, 1.48, 1.6, stD);
+      } },
+      { c: [i + 0.85, j + 0.32], d: () => {
+        box(i + 0.82, j + 0.3, i + 0.88, j + 0.36, h, h + 0.26, ink);
+        box(i + 0.72, j + 0.2, i + 0.98, j + 0.45, h + 0.26, h + 0.6, C.roofRed);
+        box(i + 0.7, j + 0.18, i + 1.0, j + 0.47, h + 0.6, h + 0.65, [128, 34, 26]);
+        box(i + 0.98, j + 0.27, i + 0.985, j + 0.38, h + 0.47, h + 0.51, ink);
+      } },
     ]);
-    m.glowW = [[i + 0.5, j + 0.5, h + 1.12]];
-    m.topW = [i + 0.5, j + 0.5, h + 1.75];
+    m.glowW = [[i + 0.5, j + 0.5, h + 1.05]];
+    m.topW = [i + 0.5, j + 0.5, h + 1.85];
   }
 }
 function drawDock() {
