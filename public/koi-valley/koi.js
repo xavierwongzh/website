@@ -1308,11 +1308,22 @@ function drawMark(m) {
         face([[r1, s1, rz], [r0, s1, rz], RT], st); face([[r0, s1, rz], [r0, s0, rz], RT], st);
         L(0.47, 0.53, 1.48, 1.6, stD);
       } },
-      { c: [i + 0.85, j + 0.32], d: () => {
-        box(i + 0.82, j + 0.3, i + 0.88, j + 0.36, h, h + 0.26, ink);
-        box(i + 0.72, j + 0.2, i + 0.98, j + 0.45, h + 0.26, h + 0.6, C.roofRed);
-        box(i + 0.7, j + 0.18, i + 1.0, j + 0.47, h + 0.6, h + 0.65, [128, 34, 26]);
-        box(i + 0.98, j + 0.27, i + 0.985, j + 0.38, h + 0.47, h + 0.51, ink);
+      { c: [i + 0.86, j + 0.3], d: () => {
+        // a classic round red pillar postbox: dark plinth, ten-sided body, a lipped cap rising to a dome,
+        // a letter slot with a little hood and a white collection plate
+        const cx = i + 0.86, cy = j + 0.3, n = 10, red = [196, 44, 34], redD = [150, 32, 26];
+        const ring = (r, z0, z1, col) => { for (let k = 0; k < n; k++) { const a0 = (k / n) * Math.PI * 2, a1 = ((k + 1) / n) * Math.PI * 2;
+          face([[cx + r * Math.cos(a0), cy + r * Math.sin(a0), z0], [cx + r * Math.cos(a1), cy + r * Math.sin(a1), z0], [cx + r * Math.cos(a1), cy + r * Math.sin(a1), z1], [cx + r * Math.cos(a0), cy + r * Math.sin(a0), z1]], col); } };
+        const cone = (r, z0, z1, col) => { for (let k = 0; k < n; k++) { const a0 = (k / n) * Math.PI * 2, a1 = ((k + 1) / n) * Math.PI * 2;
+          face([[cx + r * Math.cos(a0), cy + r * Math.sin(a0), z0], [cx + r * Math.cos(a1), cy + r * Math.sin(a1), z0], [cx, cy, z1]], col); } };
+        ring(0.15, h - 0.02, h + 0.06, ink);
+        ring(0.12, h + 0.06, h + 0.6, red);
+        ring(0.135, h + 0.6, h + 0.65, redD);
+        cone(0.135, h + 0.65, h + 0.8, red);
+        box(cx - 0.02, cy - 0.02, cx + 0.02, cy + 0.02, h + 0.79, h + 0.84, redD);
+        // the slot faces east and the plate south; each is drawn only while its side faces the camera
+        if (depth(cx + 1, cy) > depth(cx, cy) || cam.pitch > 1.3) { box(cx + 0.118, cy - 0.06, cx + 0.128, cy + 0.06, h + 0.45, h + 0.475, ink); box(cx + 0.118, cy - 0.07, cx + 0.15, cy + 0.07, h + 0.48, h + 0.5, redD); }
+        if (depth(cx, cy + 1) > depth(cx, cy) || cam.pitch > 1.3) box(cx - 0.05, cy + 0.118, cx + 0.05, cy + 0.123, h + 0.24, h + 0.36, [242, 238, 228]);
       } },
     ]);
     m.glowW = [[i + 0.5, j + 0.5, h + 1.05]];
@@ -1837,7 +1848,7 @@ function drawFallen(f) {
   ctx.fillStyle = rgb(lit(f.b[5] || LEAF_FALL_COLS[((f.a * 10) | 0) % 4], 0.92));
   ctx.beginPath(); ctx.ellipse(x, y, u, u * 0.3, Math.sin(f.a) * 0.5, 0, Math.PI * 2); ctx.fill();
 }
-const PUMPKIN_SPOTS = [[16.2, 11.3, 1.1], [16.25, 11.75, 0.8], [16.0, 12.05, 0.9], [13.2, 9.35, 0.9], [13.25, 9.75, 0.7], [7.95, 14.35, 1], [7.4, 15.1, 0.8], [14.2, 6.95, 0.9]];
+const PUMPKIN_SPOTS = [[16.2, 11.3, 1.1], [16.25, 11.75, 0.8], [16.0, 12.05, 0.9], [13.2, 9.35, 0.9], [13.25, 9.75, 0.7], [8.2, 14.05, 1], [7.4, 15.1, 0.8], [14.2, 6.95, 0.9]];
 const PUMPKINS = PUMPKIN_SPOTS.filter(([x, y]) => insideIsland(x, y, 0.95) && hf(x, y) > WATER_H + 0.15 && lakeD(x, y) > 1.1).map(([x, y, sc], k) => ({ x, y, h: hf(x, y), sc, carved: k === 0 || isHalloween() }));
 function drawPumpkin(p) {
   const [x, y, f] = P(p.x, p.y, p.h), r = TW * f * cam.zoom * 0.1 * p.sc;
