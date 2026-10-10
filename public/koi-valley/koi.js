@@ -1631,8 +1631,8 @@ function drawNightLights(t) {
   for (const m of MARKS) for (const w of (m.glowW || [])) {
     if (occluded(w[0], w[1], w[2])) continue;
     // the cabin's windows and the pavilion's lamp only spill a soft light, so walls still read as walls and the pond stays dark
-    const soft = m.kind === "cabin" || m.kind === "pavilion", [x, y, f] = P(...w), r = TW * f * cam.zoom * (m.kind === "pavilion" ? 0.8 : soft ? 0.6 : 0.9);
-    glow(x, y, r, [255, 180, 90], (soft ? 0.28 : 0.5) * night);
+    const soft = m.kind === "cabin" || m.kind === "pavilion", [x, y, f] = P(...w), r = TW * f * cam.zoom * (m.kind === "pavilion" ? 0.6 : soft ? 0.42 : 0.55);
+    glow(x, y, r, [255, 180, 90], (soft ? 0.22 : 0.38) * night);
     if (soft) continue;
     ctx.fillStyle = `rgba(255,214,140,${0.9 * night})`; ctx.beginPath(); ctx.arc(x, y, Math.max(1.5, TW * 0.035), 0, Math.PI * 2); ctx.fill();
   }
@@ -1957,7 +1957,7 @@ function drawPumpkin(p) {
     ctx.fillStyle = c;
     for (const sd of [-1, 1]) { ctx.beginPath(); ctx.moveTo(x + sd * r * 0.35, y - r * 1.05); ctx.lineTo(x + sd * r * 0.15, y - r * 0.8); ctx.lineTo(x + sd * r * 0.5, y - r * 0.8); ctx.fill(); }
     ctx.beginPath(); ctx.moveTo(x - r * 0.45, y - r * 0.55); ctx.quadraticCurveTo(x, y - r * 0.2, x + r * 0.45, y - r * 0.55); ctx.lineTo(x, y - r * 0.42); ctx.fill();
-    if (lit2) { ctx.save(); ctx.globalCompositeOperation = "lighter"; glow(x, y - r * 0.7, r * 3, [255, 160, 60], 0.35); ctx.restore(); }
+    if (lit2) { ctx.save(); ctx.globalCompositeOperation = "lighter"; glow(x, y - r * 0.7, r * 2, [255, 160, 60], 0.25); ctx.restore(); }
   }
 }
 // winter: a Christmas tree by the cabin, lights on the eaves, skaters on the pond
