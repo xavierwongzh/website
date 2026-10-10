@@ -1630,8 +1630,10 @@ function drawNightLights(t) {
   if (!occluded(...CW([0, 0, 0.6]))) { const [gx, gy] = P(...CW([0.2, 0, 0.55])); glow(gx, gy, TW * cam.zoom * 0.9, [140, 186, 255], 0.5 * night); }
   for (const m of MARKS) for (const w of (m.glowW || [])) {
     if (occluded(w[0], w[1], w[2])) continue;
-    const [x, y, f] = P(...w), r = TW * f * cam.zoom * (m.kind === "pavilion" ? 1.2 : 0.9);
-    glow(x, y, r, [255, 180, 90], 0.5 * night);
+    // the cabin's windows already glow on their own, so its spill light stays soft enough that the walls still read as walls
+    const cabin = m.kind === "cabin", [x, y, f] = P(...w), r = TW * f * cam.zoom * (m.kind === "pavilion" ? 1.2 : cabin ? 0.6 : 0.9);
+    glow(x, y, r, [255, 180, 90], (cabin ? 0.28 : 0.5) * night);
+    if (cabin) continue;
     ctx.fillStyle = `rgba(255,214,140,${0.9 * night})`; ctx.beginPath(); ctx.arc(x, y, Math.max(1.5, TW * 0.035), 0, Math.PI * 2); ctx.fill();
   }
   if (SEASON !== "winter") for (const f of flies) {
@@ -1650,7 +1652,7 @@ function drawNightLights(t) {
       const [sx, sy] = P(x, y, RUNWAY.h + 0.05); glow(sx, sy, 5 * GLOW_K, [255, 200, 120], 0.8 * night);
     }
   }
-  if (!occluded(LAKE.cx, LAKE.cy, WATER_H + 0.2)) for (const f of koi) if (f.sx) glow(f.sx, f.sy, TW * 0.4, [255, 180, 120], 0.18 * night);
+  if (!occluded(LAKE.cx, LAKE.cy, WATER_H + 0.2)) for (const f of koi) if (f.sx) glow(f.sx, f.sy, TW * 0.3, [255, 180, 120], 0.07 * night); // faint, so a school of koi doesn't stack into a hot spot
   ctx.restore();
 }
 
