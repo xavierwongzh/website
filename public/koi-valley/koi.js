@@ -1212,13 +1212,49 @@ function drawMark(m) {
     m.glowW = [[i + 0.51, y1 + 0.03, h + 0.58], [i + 0.51, y0 - 0.03, h + 0.58], [x1 + 0.03, j + 0.5, h + 0.58]];
     m.topW = [i + 0.5, j + 0.5, h + 2.1];
   } else if (m.kind === "pavilion") {
-    box(i + 0.1, j + 0.1, i + 0.9, j + 0.9, h, h + 0.12, C.wood);
-    sortedDraw([[0.18, 0.18], [0.82, 0.18], [0.18, 0.82], [0.82, 0.82]].map(([px, py]) => ({ c: [i + px, j + py], d: () => box(i + px - 0.05, j + py - 0.05, i + px + 0.05, j + py + 0.05, h + 0.12, h + 1.0, C.roofRed) })));
-    const zr = h + 1.0, zt = h + 1.7, a0 = i - 0.12, a1 = i + 1.12, b0 = j - 0.12, b1 = j + 1.12, T = [i + 0.5, j + 0.5, zt];
-    face([[a0, b0, zr], [a1, b0, zr], T], C.roof); face([[a1, b0, zr], [a1, b1, zr], T], C.roof);
-    face([[a1, b1, zr], [a0, b1, zr], T], C.roof); face([[a0, b1, zr], [a0, b0, zr], T], C.roof);
+    // a stone plinth with a front step, a timber floor shaded under the eaves, railed posts with
+    // a beam ring, and a two-tier hipped roof with thick eaves and a finial
+    const stoneC = [168, 158, 148], beam = [130, 38, 28], rail = [104, 62, 38], fascia = [52, 40, 46];
+    // soft shadow the wide eaves throw on the ground around the plinth
+    poly([[i - 0.12, j - 0.12], [i + 1.18, j - 0.12], [i + 1.18, j + 1.2], [i - 0.12, j + 1.2]].map(([x, y]) => P(x, y, h - 0.07)), rgba([20, 14, 10], 0.2 * S.light));
+    box(i + 0.02, j + 0.02, i + 0.98, j + 0.98, h - 0.08, h + 0.1, stoneC);
+    box(i + 0.36, j + 0.98, i + 0.64, j + 1.14, h - 0.08, h + 0.02, stoneC);
+    box(i + 0.1, j + 0.1, i + 0.9, j + 0.9, h + 0.1, h + 0.17, C.wood);
+    face([[i + 0.2, j + 0.2, h + 0.171], [i + 0.8, j + 0.2, h + 0.171], [i + 0.8, j + 0.8, h + 0.171], [i + 0.2, j + 0.8, h + 0.171]], C.wood, 0.62);
+    const fz = h + 0.17, top = h + 1.0, P0 = 0.18, P1 = 0.82, pw = 0.055;
+    const railX = (x, y0, y1) => () => { box(x - 0.02, y0, x + 0.02, y1, fz + 0.36, fz + 0.41, rail); box(x - 0.015, y0, x + 0.015, y1, fz + 0.14, fz + 0.18, rail); };
+    const railY = (y, x0, x1) => () => { box(x0, y - 0.02, x1, y + 0.02, fz + 0.36, fz + 0.41, rail); box(x0, y - 0.015, x1, y + 0.015, fz + 0.14, fz + 0.18, rail); };
+    sortedDraw([
+      ...[[P0, P0], [P1, P0], [P0, P1], [P1, P1]].map(([px, py]) => ({ c: [i + px, j + py], d: () => box(i + px - pw, j + py - pw, i + px + pw, j + py + pw, fz, top, C.roofRed) })),
+      { c: [i + 0.5, j + P0], d: railY(j + P0, i + P0 + pw, i + P1 - pw) },
+      { c: [i + P0, j + 0.5], d: railX(i + P0, j + P0 + pw, j + P1 - pw) },
+      { c: [i + P1, j + 0.5], d: railX(i + P1, j + P0 + pw, j + P1 - pw) },
+      { c: [i + 0.5, j + P0 - 0.01], d: () => box(i + P0 - pw, j + P0 - pw, i + P1 + pw, j + P0 + pw, top - 0.12, top, beam) },
+      { c: [i + P0 - 0.01, j + 0.5], d: () => box(i + P0 - pw, j + P0 - pw, i + P0 + pw, j + P1 + pw, top - 0.12, top, beam) },
+      { c: [i + P1 + 0.01, j + 0.5], d: () => box(i + P1 - pw, j + P0 - pw, i + P1 + pw, j + P1 + pw, top - 0.12, top, beam) },
+      { c: [i + 0.5, j + P1 + 0.01], d: () => box(i + P0 - pw, j + P1 - pw, i + P1 + pw, j + P1 + pw, top - 0.12, top, beam) },
+    ]);
+    // lower roof: a thick eave slab, then hipped slopes up to a ring
+    const a0 = i - 0.16, a1 = i + 1.16, b0 = j - 0.16, b1 = j + 1.16, e0 = top, e1 = top + 0.08, z2 = top + 0.48;
+    const c0 = i + 0.3, c1 = i + 0.7, d0 = j + 0.3, d1 = j + 0.7;
+    box(a0, b0, a1, b1, e0, e1, fascia);
+    face([[a0, b0, e1], [a1, b0, e1], [c1, d0, z2], [c0, d0, z2]], C.roof); face([[a1, b0, e1], [a1, b1, e1], [c1, d1, z2], [c1, d0, z2]], C.roof);
+    face([[a1, b1, e1], [a0, b1, e1], [c0, d1, z2], [c1, d1, z2]], C.roof); face([[a0, b1, e1], [a0, b0, e1], [c0, d0, z2], [c0, d1, z2]], C.roof);
+    // upper tier: a short red drum and a small pyramid roof with its own eave and a gold finial
+    const ridge = (pts) => { ctx.strokeStyle = rgba(lit([150, 128, 132]), 0.75); ctx.lineWidth = Math.max(1, TW * cam.zoom * 0.018); ctx.lineCap = "round"; ctx.beginPath();
+      // hip ridges: skip the one at the far corner, which the roof itself hides (all four show from above)
+      if (cam.pitch < 1.3) pts = pts.map(r => [depth(r[0][0], r[0][1]), r]).sort((x, y) => x[0] - y[0]).slice(1).map(x => x[1]);
+      for (const [p, q] of pts) { const A = P(...p), B = P(...q); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); } ctx.stroke(); };
+    ridge([[[a0, b0, e1], [c0, d0, z2]], [[a1, b0, e1], [c1, d0, z2]], [[a1, b1, e1], [c1, d1, z2]], [[a0, b1, e1], [c0, d1, z2]]]);
+    box(i + 0.34, j + 0.34, i + 0.66, j + 0.66, z2, z2 + 0.24, beam);
+    const u0 = i + 0.22, u1 = i + 0.78, v0 = j + 0.22, v1 = j + 0.78, ue = z2 + 0.24, ut = z2 + 0.64, UT = [i + 0.5, j + 0.5, ut];
+    box(u0, v0, u1, v1, ue, ue + 0.05, fascia);
+    face([[u0, v0, ue + 0.05], [u1, v0, ue + 0.05], UT], C.roof); face([[u1, v0, ue + 0.05], [u1, v1, ue + 0.05], UT], C.roof);
+    face([[u1, v1, ue + 0.05], [u0, v1, ue + 0.05], UT], C.roof); face([[u0, v1, ue + 0.05], [u0, v0, ue + 0.05], UT], C.roof);
+    ridge([[[u0, v0, ue + 0.05], UT], [[u1, v0, ue + 0.05], UT], [[u1, v1, ue + 0.05], UT], [[u0, v1, ue + 0.05], UT]]);
+    box(i + 0.47, j + 0.47, i + 0.53, j + 0.53, ut - 0.04, ut + 0.16, [214, 168, 72]);
     m.glowW = [[i + 0.5, j + 2.3, WATER_H + 0.7]];
-    m.topW = [i + 0.5, j + 0.5, h + 1.95];
+    m.topW = [i + 0.5, j + 0.5, h + 2.3];
   } else if (m.kind === "torii") {
     sortedDraw([
       { c: [i + 0.25, j + 0.5], d: () => box(i + 0.2, j + 0.45, i + 0.3, j + 0.55, h, h + 1.25, C.torii) },
