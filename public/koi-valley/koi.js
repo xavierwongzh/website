@@ -107,7 +107,7 @@ const PLACES = {
       <p class="muted"><b>Analysis and ML:</b> statistical analysis, machine learning, forecasting</p>
       <p class="muted"><b>Optimization:</b> Pyomo, Gurobi, LP and MILP modelling, simulation (CAST)</p>
       <p class="muted"><b>BI and automation:</b> Power BI, Power Automate, UiPath, Google Apps Script</p></div>
-    <p><button class="chip" data-open="projects">See my projects</button> <button class="chip" data-open="contact">Get in touch</button></p>` },
+    <p><button class="chip" data-open="projects">See my projects</button> <a class="chip" href="/koi-valley/Xavier-Wong-Resume.pdf" target="_blank" rel="noopener">My resume (PDF)</a> <button class="chip" data-open="contact">Get in touch</button></p>` },
   experience: { eyebrow: "The pavilion", title: "Experience", html: () => [
       entry("Data Analyst Intern", "Razer (Asia-Pacific)", "Aug 2024 – Jan 2025", list([
         "Proposed a Power BI alternative to a SAP feature enhancement, saving the company $2M",
@@ -144,7 +144,7 @@ const PLACES = {
   contact: { eyebrow: "The lantern post", title: "Say hello", html: () => `
     <p>Open to roles in aviation, optimization and analytics. I'm always happy to chat about airports, scheduling problems or something fun you're building.</p>
     <div class="copyrow"><code>xavierwongzh@gmail.com</code><button class="chip" id="copyMail">Copy</button></div>
-    <p><a href="mailto:xavierwongzh@gmail.com">Email</a> · <a href="https://www.linkedin.com/in/xavierwongzh" target="_blank" rel="noopener">LinkedIn</a> · <a href="https://github.com/xavierwongzh" target="_blank" rel="noopener">GitHub</a></p>` },
+    <p><a href="mailto:xavierwongzh@gmail.com">Email</a> · <a href="https://www.linkedin.com/in/xavierwongzh" target="_blank" rel="noopener">LinkedIn</a> · <a href="https://github.com/xavierwongzh" target="_blank" rel="noopener">GitHub</a> · <a href="/koi-valley/Xavier-Wong-Resume.pdf" target="_blank" rel="noopener">Resume (PDF)</a></p>` },
   projects: { eyebrow: "The koi pond", title: "Projects", html: () => `
     <p class="muted">The koi in the pond are my featured projects. Tap one in the water, or pick any project below to read more.</p>
     <div class="projgrid">${PROJECTS.map(p => `<button class="proj" data-proj="${p.id}"><strong>${esc(p.title)}</strong><span class="psub">${esc(p.sub)}</span><span class="pwhen">${p.when}${p.koi ? " · in the pond" : ""}</span></button>`).join("")}</div>` },

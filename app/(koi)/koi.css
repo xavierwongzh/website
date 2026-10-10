@@ -73,6 +73,8 @@ body {
   padding: 6px 10px; cursor: pointer;
 }
 .chip:hover { border-color: var(--maple); color: var(--maple); }
+a.chip, .drawer a.chip { display: inline-block; text-decoration: none; color: var(--ink); }
+.drawer a.chip:hover { color: var(--maple); }
 .chip[aria-pressed="true"] { background: var(--maple); border-color: var(--maple); color: var(--paper); }
 .chip:focus-visible, .tag-btn:focus-visible, .close:focus-visible, .proj:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
