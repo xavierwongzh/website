@@ -802,40 +802,22 @@ const TOWER = (() => { const { c, rad, tan } = RUNWAY; return [c[0] + rad[0] * 0
 function drawTower() {
   const [x, y] = TOWER, h = hf(x, y);
   const conc = [222, 214, 200], concD = [176, 170, 160], trim = [60, 58, 66], glass = [110, 168, 192];
-  const ax = RUNWAY.rad[0] * 0.26, ay = RUNWAY.rad[1] * 0.26; // the base building sits on the side away from the runway
-  sortedDraw([
-    { c: [x + ax, y + ay], d: () => {
-      const bx = x + ax, by = y + ay, r = 0.2, z1 = h + 0.32;
-      box(bx - r, by - r, bx + r, by + r, h, z1, conc);
-      // a window strip on each side that faces the camera, and a door on the side facing away from the runway
-      for (const [nx, ny] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        if (depth(bx + nx, by + ny) <= depth(bx, by)) continue;
-        const px = bx + nx * (r + 0.008), py = by + ny * (r + 0.008), tx = ny ? 0.15 : 0.008, ty = nx ? 0.15 : 0.008;
-        box(px - tx, py - ty, px + tx, py + ty, h + 0.15, h + 0.25, glass, 1.15);
-        const door = nx * RUNWAY.rad[0] + ny * RUNWAY.rad[1] > 0.7;
-        if (door) { const dx = ny ? 0.04 : 0.008, dy = nx ? 0.04 : 0.008; box(px - dx, py - dy, px + dx, py + dy, h, h + 0.13, trim); }
-      }
-      box(bx - r - 0.025, by - r - 0.025, bx + r + 0.025, by + r + 0.025, z1, z1 + 0.04, trim); // roof edge
-    } },
-    { c: [x, y], d: () => {
-      // straight shaft with a band halfway up, drawn bottom to top so nothing paints over what sits above it
-      box(x - 0.12, y - 0.12, x + 0.12, y + 0.12, h, h + 0.46, conc);
-      box(x - 0.135, y - 0.135, x + 0.135, y + 0.135, h + 0.46, h + 0.5, concD);
-      box(x - 0.12, y - 0.12, x + 0.12, y + 0.12, h + 0.5, h + 0.95, conc);
-      box(x - 0.2, y - 0.2, x + 0.2, y + 0.2, h + 0.95, h + 1.0, concD); // deck under the cab
-      // glass cab with corner frames: the far frames go behind the glass, the near ones in front
-      const post = (sx, sy) => { const m = 0.18; box(x + sx * m - 0.014, y + sy * m - 0.014, x + sx * m + 0.014, y + sy * m + 0.014, h + 1.0, h + 1.24, trim); };
-      const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]], near = ([sx, sy]) => depth(x + sx, y + sy) > depth(x, y);
-      corners.filter(c => !near(c)).forEach(c => post(...c));
-      box(x - 0.18, y - 0.18, x + 0.18, y + 0.18, h + 1.0, h + 1.24, glass, 1.15);
-      corners.filter(near).forEach(c => post(...c));
-      box(x - 0.23, y - 0.23, x + 0.23, y + 0.23, h + 1.24, h + 1.3, trim); // roof with overhang
-      box(x - 0.1, y - 0.1, x + 0.1, y + 0.1, h + 1.3, h + 1.37, concD);
-      const m0 = P(x, y, h + 1.37), m1 = P(x, y, h + 1.6);
-      ctx.strokeStyle = rgb(lit([90, 88, 92])); ctx.lineWidth = Math.max(1, TW * cam.zoom * 0.012); ctx.beginPath(); ctx.moveTo(m0[0], m0[1]); ctx.lineTo(m1[0], m1[1]); ctx.stroke();
-      ctx.fillStyle = rgb(lit([200, 60, 50], 1.2)); ctx.beginPath(); ctx.arc(m1[0], m1[1], Math.max(1.2, TW * cam.zoom * 0.018), 0, Math.PI * 2); ctx.fill();
-    } },
-  ]);
+  // straight shaft with a band halfway up, drawn bottom to top so nothing paints over what sits above it
+  box(x - 0.12, y - 0.12, x + 0.12, y + 0.12, h, h + 0.46, conc);
+  box(x - 0.135, y - 0.135, x + 0.135, y + 0.135, h + 0.46, h + 0.5, concD);
+  box(x - 0.12, y - 0.12, x + 0.12, y + 0.12, h + 0.5, h + 0.95, conc);
+  box(x - 0.2, y - 0.2, x + 0.2, y + 0.2, h + 0.95, h + 1.0, concD); // deck under the cab
+  // glass cab with corner frames: the far frames go behind the glass, the near ones in front
+  const post = (sx, sy) => { const m = 0.18; box(x + sx * m - 0.014, y + sy * m - 0.014, x + sx * m + 0.014, y + sy * m + 0.014, h + 1.0, h + 1.24, trim); };
+  const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]], near = ([sx, sy]) => depth(x + sx, y + sy) > depth(x, y);
+  corners.filter(c => !near(c)).forEach(c => post(...c));
+  box(x - 0.18, y - 0.18, x + 0.18, y + 0.18, h + 1.0, h + 1.24, glass, 1.15);
+  corners.filter(near).forEach(c => post(...c));
+  box(x - 0.23, y - 0.23, x + 0.23, y + 0.23, h + 1.24, h + 1.3, trim); // roof with overhang
+  box(x - 0.1, y - 0.1, x + 0.1, y + 0.1, h + 1.3, h + 1.37, concD);
+  const m0 = P(x, y, h + 1.37), m1 = P(x, y, h + 1.6);
+  ctx.strokeStyle = rgb(lit([90, 88, 92])); ctx.lineWidth = Math.max(1, TW * cam.zoom * 0.012); ctx.beginPath(); ctx.moveTo(m0[0], m0[1]); ctx.lineTo(m1[0], m1[1]); ctx.stroke();
+  ctx.fillStyle = rgb(lit([200, 60, 50], 1.2)); ctx.beginPath(); ctx.arc(m1[0], m1[1], Math.max(1.2, TW * cam.zoom * 0.018), 0, Math.PI * 2); ctx.fill();
   // windsock
   const wx = RUNWAY.b[0] + RUNWAY.rad[0] * 0.45, wy = RUNWAY.b[1] + RUNWAY.rad[1] * 0.45, wh = hf(wx, wy);
   const p0 = P(wx, wy, wh), p1 = P(wx, wy, wh + 0.8), sway = Math.sin(performance.now() * 0.002) * 0.08;
