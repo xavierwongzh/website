@@ -1878,7 +1878,8 @@ let releasedAt = -Infinity;
 const homeYaw = y => HOME_YAW + Math.round((y - HOME_YAW) / (Math.PI * 2)) * Math.PI * 2;
 function stepCamera(dt) {
   const tv = VIEWS[view], k = 1 - Math.pow(0.004, dt);
-  const resting = !drag && !pinch && !mpan && !camFocus.on && performance.now() - releasedAt < HOME_DELAY;
+  // a press that hasn't moved yet (a click or tap) keeps the island where it is instead of starting the trip home
+  const resting = (!drag || !drag.moved) && !pinch && !mpan && !camFocus.on && performance.now() - releasedAt < HOME_DELAY;
   if (resting) { cam.yaw += cam.yawV * dt; cam.yawV *= Math.pow(0.02, dt); } else if (!drag) cam.yawV = 0;
   if (!(drag && drag.moved && view === "persp") && !resting) cam.pitch = lerp(cam.pitch, tv.pitch, k);
   cam.persp = lerp(cam.persp, tv.persp, k);
