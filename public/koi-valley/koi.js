@@ -2224,12 +2224,24 @@ function drawSanta(x, y, t) {
   ctx.restore();
 }
 function drawRain() {
+  if (SEASON === "winter" && !reduceMotion) drawSnowfall();
   if (!rainOn) return;
   ctx.save(); ctx.strokeStyle = rgba(lit([210, 225, 240]), 0.45); ctx.lineWidth = 1;
   const now = performance.now();
   ctx.beginPath();
   for (const [rx, ry, sp] of rainDrops) { const y = ((ry + now * 0.0009 * sp) % 1) * H, x = (rx * W + y * 0.18) % W; ctx.moveTo(x, y); ctx.lineTo(x - 14 * 0.18, y - 14); }
   ctx.stroke(); ctx.fillStyle = "rgba(120,130,150,0.08)"; ctx.fillRect(0, 0, W, H); ctx.restore();
+}
+// winter: soft snow drifting down across the whole sky, nearer flakes a little bigger and faster
+function drawSnowfall() {
+  const now = performance.now(), u = Math.min(W, H) / 800;
+  ctx.save(); ctx.fillStyle = rgba(lit([248, 250, 255]), 0.8);
+  ctx.beginPath();
+  for (const [rx, ry, sp] of rainDrops) {
+    const y = ((ry + now * 0.00005 * sp) % 1) * (H + 20) - 10, x = ((rx * W + Math.sin(now * 0.0006 * sp + rx * 40) * 18 * sp + y * 0.05) % W + W) % W, r = (0.9 + (sp - 0.6) * 2) * Math.max(1, u * 1.4);
+    ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, Math.PI * 2);
+  }
+  ctx.fill(); ctx.restore();
 }
 // winter: a snowman and chimney smoke
 const SNOWMAN = (() => {
