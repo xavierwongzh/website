@@ -1661,6 +1661,8 @@ function drawWater(t) {
     if (!ok) continue;
     for (const lag of [0, 0.18]) { const q = ph - lag; if (q <= 0) continue; ctx.globalAlpha = (1 - q) * (1 - q) * (0.22 + 0.14 * S.light); ringW(x, y, 0.06 + q * 0.42); ctx.stroke(); }
   }
+  // spring rain: small soft rings where the drops land
+  for (const r of rainRings) for (const lag of [0, 0.3]) { const q = r.q - lag; if (q <= 0) continue; ctx.globalAlpha = (1 - q) * (1 - q) * (0.2 + 0.14 * S.light); ringW(r.x, r.y, 0.03 + q * 0.2); ctx.stroke(); }
   ctx.restore();
   for (const r of ripples) { ctx.strokeStyle = `rgba(255,255,255,${r.a})`; ctx.lineWidth = 1.2; ringW(r.x, r.y, r.r * 0.5); ctx.stroke(); }
   for (const fd of food) { const c = P(fd.x, fd.y, WATER_H); ctx.fillStyle = `rgba(214,170,98,${clamp(1 - fd.t / 12, 0, 1)})`; ctx.beginPath(); ctx.arc(c[0], c[1], Math.max(1.5, TW * 0.03), 0, Math.PI * 2); ctx.fill(); }
@@ -2156,7 +2158,8 @@ function seasonalItems(items, t, bias) {
 function isHalloween(d = new Date()) { return d.getMonth() === 9 && d.getDate() === 31; }
 function isNewYear(d = new Date()) { return (d.getMonth() === 11 && d.getDate() === 31 && hourNow >= 20) || (d.getMonth() === 0 && d.getDate() === 1 && hourNow < 1); }
 const shooting = [];
-let rainT = 0, rainOn = false;
+let rainT = 0, rainOn = false, rainSpawn = 0;
+const rainRings = []; // where raindrops land on the pond
 const rainDrops = Array.from({ length: 140 }, () => [Math.random(), Math.random(), 0.6 + Math.random() * 0.6]);
 function stepSkyExtras(dt) {
   const night = clamp((0.72 - S.light) / 0.36, 0, 1);
@@ -2166,6 +2169,10 @@ function stepSkyExtras(dt) {
   rainT += dt;
   if (SEASON === "spring" && !reduceMotion) { const c = rainT % 60; rainOn = c > 40 && c < 52; }
   else rainOn = false;
+  if (rainOn) for (rainSpawn += dt * 9; rainSpawn >= 1; rainSpawn--) {
+    for (let n = 0; n < 6; n++) { const x = LAKE.cx + (Math.random() * 2 - 1) * LAKE.rx, y = LAKE.cy + (Math.random() * 2 - 1) * LAKE.ry; if (inPond(x, y, 0.9)) { rainRings.push({ x, y, q: 0 }); break; } }
+  }
+  for (let k = rainRings.length - 1; k >= 0; k--) if ((rainRings[k].q += dt * 0.6) >= 1) rainRings.splice(k, 1);
   if (SEASON === "winter") stepSmoke(dt);
 }
 function drawSkyExtras(t, night) {
