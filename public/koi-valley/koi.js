@@ -605,7 +605,8 @@ const RIBBON = (() => {
 
 // ---------- camera ----------
 // World: x = i, y = j, height h. The camera orbits the island centre; isometric is yaw 45°, pitch 30°, no perspective.
-const cv = document.getElementById("world"), ctx = cv.getContext("2d");
+const cv = document.getElementById("world"), mainCtx = cv.getContext("2d");
+let ctx = mainCtx; // swapped to an offscreen canvas while a tree is cached
 const ZU = 0.588, CX = 8.7, CY = 8.7, CZ = 2, DP = 30;
 const VIEWS = {
   iso: { pitch: Math.PI / 6, persp: 0, zoom: 1 },
@@ -736,58 +737,129 @@ function groundShadow(x, y, h, r) {
   for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2, p = P(x + Math.cos(a) * r, y + Math.sin(a) * r, h); k ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); }
   ctx.closePath(); ctx.fillStyle = rgba([0, 0, 0], 0.15 * S.light); ctx.fill();
 }
-function drawTree(t) {
-  const [x, y, f] = P(t.i, t.j, t.h), s = t.s * TW * f * cam.zoom, k = t.s * 2.78;
-  const up = z => P(t.i, t.j, t.h + z * k);
-  groundShadow(t.i + 0.05, t.j + 0.05, t.h, (t.kind === "ginkgo" ? 0.17 : t.kind === "bush" ? 0.2 : 0.24) * t.s);
-  const flat = cosP < 0.35;
-  // trunk: a tapered column with a lit left half and a shaded right half
-  const trunk = (z, col, w) => {
-    const tp = up(z), tx = tp[0] + t.lean * s, ty = tp[1], b = Math.max(0.7, s * w * 0.55), u = b * 0.6;
-    poly([[x - b, y], [x, y + b * 0.3], [tx, ty], [tx - u, ty]], rgb(lit(col, 1.02)));
-    poly([[x, y + b * 0.3], [x + b, y], [tx + u, ty], [tx, ty]], rgb(lit(col, 0.7)));
-    return [tx, ty];
-  };
-  const blobs = () => {
-    const bs = SEASON === "winter" ? 0.82 : 1;
-    const pts = t.blobs.map(([bx, bz, br, col, ry]) => { const p = up(bz); return [p[0] + bx * s + t.lean * s * bz * 2, p[1], br * s * bs, col, flat ? 1 : ry || 1]; });
-    // each blob is a low-poly dome: a ring of facets around a peak nudged toward the light (upper left),
-    // shaded by which way each facet faces; higher blobs first so the lower ones sit in front
-    pts.map((p, q) => [p, q]).sort((a, b) => a[0][1] - b[0][1]).forEach(([[bx, by, br, col, ry], q]) => {
-      const n = 7, seed = hash(t.i * 3.7 + q, t.j * 5.3 - q), a0 = seed * 6.28;
-      const rim = Array.from({ length: n }, (_, k) => { const a = a0 + k / n * Math.PI * 2, r = br * (0.98 + 0.12 * hash(seed * 9 + k, q)); return [bx + Math.cos(a) * r, by + Math.sin(a) * r * ry, a]; });
-      const px = bx - br * 0.22, py = by - br * ry * 0.28;
-      for (let k = 0; k < n; k++) {
-        const A = rim[k], B = rim[(k + 1) % n], mx = (A[0] + B[0]) / 2 - bx, my = ((A[1] + B[1]) / 2 - by) / ry, ml = Math.hypot(mx, my) || 1;
-        const sh = 0.76 + 0.4 * Math.max(0, (-0.62 * mx - 0.78 * my) / ml) - 0.08 * Math.max(0, my / ml);
-        poly([[px, py], A, B], rgb(lit(col, sh)));
-      }
-    });
-  };
-  if (t.kind === "maple") { trunk(0.36, C.bark, 0.07); blobs(); }
-  else if (t.kind === "ginkgo") { trunk(0.42, C.bark, 0.055); blobs(); }
-  else if (t.kind === "birch") {
-    const tp = trunk(0.72, [230, 226, 216], 0.05);
-    ctx.strokeStyle = rgb(lit([60, 52, 50])); ctx.lineWidth = Math.max(1, s * 0.02);
-    for (const q of [0.25, 0.45, 0.65]) { const yy = y + (tp[1] - y) * q, xx = x + (tp[0] - x) * q; ctx.beginPath(); ctx.moveTo(xx - s * 0.02, yy); ctx.lineTo(xx + s * 0.015, yy); ctx.stroke(); }
-    blobs();
-  } else if (t.kind === "bush") blobs();
-  else if (t.kind === "bare") {
-    const tp = trunk(0.55, [92, 66, 50], 0.05);
-    ctx.lineWidth = Math.max(1, s * 0.025);
-    for (const [q, dx, dz] of [[0.45, 0.2, 0.2], [0.6, -0.16, 0.18], [0.8, 0.1, 0.16]]) {
-      const bx = x + (tp[0] - x) * q, by = y + (tp[1] - y) * q, e = up(0.55 * q + dz);
-      ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + dx * s, e[1]); ctx.stroke();
+// a closed low-poly solid from triangles; each one is turned to face outward from c, then culled and sun-shaded by face()
+function solid(tris, c, col, boost) {
+  for (const tri of tris) {
+    const [a, b, d] = tri, e1 = [b[0] - a[0], b[1] - a[1], (b[2] - a[2]) * ZU], e2 = [d[0] - a[0], d[1] - a[1], (d[2] - a[2]) * ZU];
+    const n = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];
+    const m = [(a[0] + b[0] + d[0]) / 3 - c[0], (a[1] + b[1] + d[1]) / 3 - c[1], ((a[2] + b[2] + d[2]) / 3 - c[2]) * ZU];
+    face(n[0] * m[0] + n[1] * m[1] + n[2] * m[2] >= 0 ? tri : [a, d, b], col, boost);
+  }
+}
+// leaves for each crown blob, made once per tree: mostly near the surface of the blob's cloud, a few inside;
+// fewer and a little bigger on phones to keep drawing cheap
+function makeLeaves(t) {
+  const out = [], few = W < 640;
+  t.blobs.forEach(([, , br], q) => {
+    const n = Math.round(clamp((br / 0.17) ** 2 * (few ? 20 : 34), 8, few ? 36 : 60));
+    for (let m = 0; m < n; m++) {
+      const h1 = hash(t.i * 7.7 + q * 3.1 + m, t.j * 1.3 - m), h2 = hash(t.j * 4.9 + m * 1.7, t.i - q + m * 0.3), h3 = hash(m * 2.1 + q, t.i * 0.7 + t.j);
+      const zz = h1 * 2 - 1, a = h2 * 6.28, rr = Math.sqrt(1 - zz * zz), d = 0.5 + 0.5 * Math.sqrt(h3);
+      out.push({ q, dx: Math.cos(a) * rr * d, dy: Math.sin(a) * rr * d, dz: zz * d, out: d, rot: hash(m, q + t.i) * 6.28, s: (few ? 0.36 : 0.3) * (0.75 + 0.5 * hash(q + m, t.j)), j: (hash(m * 3.3, q * 7.1 + t.j) - 0.5) * 0.14 });
     }
-    blobs();
-  } else {
-    const col = t.pcol, L = t.layers;
-    if (flat) { for (let q = 0; q < 3; q++) { ctx.fillStyle = rgb(lit(col, 0.7 + q * 0.15)); ctx.beginPath(); ctx.arc(x, y, s * (0.26 - q * 0.07), 0, Math.PI * 2); ctx.fill(); } return; }
+  });
+  return out;
+}
+// Leafy crowns are many small shapes, so while the view holds still each tree is drawn once into its own
+// small canvas and stamped from there; while the island turns, zooms or the light changes they draw live.
+let TREE_KEY = "", treeStable = false;
+function treeCacheKey() {
+  const key = [cam.yaw, cam.pitch, cam.zoom, cam.persp].map(v => Math.round(v * 400)).join() + "," + Math.round(hourNow * 30) + SEASON + W + "x" + H + DPR;
+  treeStable = key === TREE_KEY; TREE_KEY = key;
+}
+function drawTreeCached(t) {
+  if (!treeStable) { t.spr && (t.spr.key = ""); return drawTree(t); }
+  const [bx, by, f] = P(t.i, t.j, t.h), sz = Math.max(4, t.s * TW * cam.zoom * f), w = Math.ceil(sz * 2.4), h = Math.ceil(sz * 3.6), ox = w / 2, oy = h * 0.86;
+  let sp = t.spr;
+  if (!sp || sp.key !== TREE_KEY) {
+    sp = t.spr || (t.spr = { c: document.createElement("canvas") });
+    sp.c.width = Math.ceil(w * DPR); sp.c.height = Math.ceil(h * DPR); sp.w = w; sp.h = h; sp.ox = ox; sp.oy = oy; sp.key = TREE_KEY;
+    const g = sp.c.getContext("2d"); g.setTransform(DPR, 0, 0, DPR, (ox - bx) * DPR, (oy - by) * DPR);
+    ctx = g; try { drawTree(t); } finally { ctx = mainCtx; }
+  }
+  ctx.drawImage(sp.c, bx - sp.ox, by - sp.oy, sp.w, sp.h);
+}
+function drawTree(t) {
+  const k = t.s * 2.78, R0 = t.s * Math.SQRT2, base = [t.i, t.j, t.h];
+  groundShadow(t.i + 0.05, t.j + 0.05, t.h, (t.kind === "ginkgo" ? 0.17 : t.kind === "bush" ? 0.2 : 0.24) * t.s);
+  const lx = t.lean * t.s * 1.4, ly = t.lean * t.s * 0.6;
+  // trunk: a tapered four-sided post, so it has a lit side and a shaded side from any angle
+  const trunk = (z, col, w) => {
+    const r0 = w * R0 * 0.36, r1 = r0 * 0.55, zt = t.h + z * k, tx = t.i + lx, ty = t.j + ly, tris = [];
+    const B = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => [t.i + a * r0, t.j + b * r0, t.h - 0.02]);
+    const T = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => [tx + a * r1, ty + b * r1, zt]);
+    for (let q = 0; q < 4; q++) { const q1 = (q + 1) % 4; tris.push([B[q], B[q1], T[q1]], [B[q], T[q1], T[q]]); }
+    solid(tris, [(t.i + tx) / 2, (t.j + ty) / 2, (t.h + zt) / 2], col, 1);
+    return [tx, ty, zt];
+  };
+  // the crown: a cloud of small leaves around each blob, with branches from the top of the trunk to each cloud.
+  // Leaves behind the trunk draw first, then the wood, then the leaves in front, so the branches peek through.
+  const blobs = (wood) => {
+    const bs = SEASON === "winter" ? 0.82 : 1, sc = SC, kD = cosP;
+    if (!t.leaves) t.leaves = makeLeaves(t);
+    const cl = t.blobs.map(([bx, bz, br, col, ry], q) => {
+      const a = hash(t.i * 5.1 + q, t.j * 2.3 - q) * 6.28, off = Math.abs(bx) * R0, R = br * R0 * bs * 1.05;
+      return { x: t.i + Math.cos(a) * off + lx * bz * 2, y: t.j + Math.sin(a) * off + ly * bz * 2, z: t.h + bz * k, R, Hh: R * (ry || 1) / ZU * 0.8, col, shades: [] };
+    });
+    const pts = [];
+    for (const L of t.leaves) {
+      const c = cl[L.q], x = c.x + L.dx * c.R, y = c.y + L.dy * c.R, z = c.z + L.dz * c.Hh;
+      pts.push([depthKey(x, y, z), x, y, z, L, c]);
+    }
+    pts.sort((A, B) => A[0] - B[0]);
+    const mid = depthKey(t.i, t.j, t.h + k * 0.5);
+    const leaf = ([, x, y, z, L, c]) => {
+      const [px, py, f] = P(x, y, z), r = L.s * c.R * sc * f;
+      // lit by the sun on the outside of the cloud, darker toward its core and underside
+      const sh = clamp(0.62 + 0.42 * Math.max(0, L.dx * SUN[0] + L.dy * SUN[1] + L.dz * SUN[2]) * L.out + 0.16 * L.dz + L.j, 0.45, 1.2);
+      const lv = Math.round(sh * 12);
+      const fill = c.shades[lv] || (c.shades[lv] = rgb(lit(c.col, lv / 12)));
+      const ca = Math.cos(L.rot) * r, sa = Math.sin(L.rot) * r * kD;
+      ctx.fillStyle = fill; ctx.beginPath(); ctx.moveTo(px - ca, py - sa);
+      ctx.quadraticCurveTo(px - sa * 1.1, py + ca * 1.1, px + ca, py + sa); ctx.quadraticCurveTo(px + sa * 1.1, py - ca * 1.1, px - ca, py - sa); ctx.fill();
+    };
+    let q = 0;
+    for (; q < pts.length && pts[q][0] < mid; q++) leaf(pts[q]);
+    const top = wood && wood();
+    if (top) {
+      ctx.strokeStyle = rgb(lit(C.bark, 0.8)); ctx.lineCap = "round";
+      const T = P(...top);
+      for (const c of cl) {
+        const E = P(c.x, c.y, c.z - c.Hh * 0.25), w = Math.max(1, t.s * TW * cam.zoom * 0.028);
+        ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(T[0], T[1]); ctx.lineTo(E[0], E[1]); ctx.stroke();
+      }
+    }
+    for (; q < pts.length; q++) leaf(pts[q]);
+  };
+  const crown = (z, col, w) => blobs(() => trunk(z, col, w));
+  if (t.kind === "maple") crown(0.36, C.bark, 0.07);
+  else if (t.kind === "ginkgo") crown(0.42, C.bark, 0.055);
+  else if (t.kind === "birch") {
+    blobs(() => {
+      const [tx, ty, zt] = trunk(0.72, [230, 226, 216], 0.05);
+      // dark bark marks on the front of the trunk
+      const fx = Math.sin(cam.yaw), fy = Math.cos(cam.yaw), r = 0.05 * R0 * 0.5;
+      ctx.strokeStyle = rgb(lit([60, 52, 50])); ctx.lineWidth = Math.max(1, t.s * TW * cam.zoom * 0.02);
+      for (const q of [0.25, 0.45, 0.65]) {
+        const px = t.i + (tx - t.i) * q + fx * r, py = t.j + (ty - t.j) * q + fy * r, pz = t.h + (zt - t.h) * q;
+        const A = P(px - fy * r * 0.8, py + fx * r * 0.8, pz), B = P(px + fy * r * 0.6, py - fx * r * 0.6, pz);
+        ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke();
+      }
+      return [tx, ty, zt];
+    });
+  } else if (t.kind === "bush") blobs(null);
+  else if (t.kind === "bare") crown(0.55, [92, 66, 50], 0.05);
+  else {
+    // pine and larch: stacked low-poly cones, each tier a little narrower, snow-capped in winter
+    const col = t.pcol, L = t.layers, n = 7, a0 = hash(t.i, t.j) * 6.28;
+    trunk(0.2, C.bark, 0.05);
     for (let q = 0; q < L; q++) {
-      const sp = 0.6 / L, b = up(0.12 + q * sp), a = up(0.12 + q * sp + 0.36 * 3 / L + 0.04), w = s * (0.27 - q * (0.18 / L));
+      const z0 = t.h + (0.12 + q * 0.6 / L) * k, z1 = z0 + (0.36 * 3 / L + 0.04) * k, w = (0.27 - q * (0.18 / L)) * R0;
       const lc = SEASON === "winter" ? mix(col, [236, 240, 246], q === L - 1 ? 0.8 : 0.32) : col;
-      poly([[a[0], a[1]], [b[0] + w, b[1]], [b[0] - w, b[1]]], rgb(lit(lc, 0.72)));
-      poly([[a[0], a[1]], [b[0], b[1]], [b[0] - w, b[1]]], rgb(lit(lc, 1)));
+      const apex = [t.i + lx * q / L, t.j + ly * q / L, z1], rim = Array.from({ length: n }, (_, m) => { const a = a0 + q * 0.4 + m / n * Math.PI * 2, j = 0.88 + 0.24 * hash(t.i * 3 + m, t.j + q); return [t.i + Math.cos(a) * w * j, t.j + Math.sin(a) * w * j, z0 - 0.04 * k]; });
+      const c = [t.i, t.j, z0 + 0.0001], tris = [];
+      for (let m = 0; m < n; m++) tris.push([apex, rim[m], rim[(m + 1) % n]], [c, rim[(m + 1) % n], rim[m]]);
+      solid(tris, [t.i, t.j, (z0 + z1) / 2], lc, 1.02);
     }
   }
 }
@@ -1687,7 +1759,7 @@ function renderScene(t) {
   drawLakeSurface();
   drawWater(t);
   const bias = 0.35;
-  for (const tr of trees) items.push([depthKey(tr.i, tr.j, tr.h) + bias, () => drawTree(tr)]);
+  for (const tr of trees) items.push([depthKey(tr.i, tr.j, tr.h) + bias, () => drawTreeCached(tr)]);
   for (const m of MARKS) items.push([depthKey(m.i + 0.5, m.j + 0.5, m.h) + bias + 0.1, () => drawMark(m)]);
   for (const f of koi) items.push([depthKey(f.x, f.y, WATER_H) + 0.05, () => { if (SEASON === "winter") ctx.globalAlpha = 0.45; drawKoi(f); ctx.globalAlpha = 1; }]);
   for (let k = 0; k < RIBBON.length - 1; k++) { const a = RIBBON[k], b = RIBBON[k + 1]; items.push([depthKey((a.x + b.x) / 2, (a.y + b.y) / 2, (a.h + b.h) / 2) + 0.3, () => drawRibbonSeg(k, t)]); }
@@ -2302,6 +2374,7 @@ function frame(now) {
   }
   if (dirty) { sunUpdate(); dirty = false; }
   stepCamera(dt);
+  treeCacheKey();
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   drawSky(now);
   stepKoi(reduceMotion ? dt * 0.4 : dt); stepLeaves(dt); stepFoxes(dt); stepPlane(dt); stepSeasonal(dt);
