@@ -1647,6 +1647,7 @@ function drawKoi(f) {
   }
   f.sx = S0[2][0]; f.sy = S0[2][1];
 }
+const calmRings = [];
 function ringW(x, y, r) { ctx.beginPath(); for (let k = 0; k <= 24; k++) { const a = k / 24 * Math.PI * 2, p = P(x + Math.cos(a) * r, y + Math.sin(a) * r, WATER_H); k ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); } }
 function drawWater(t) {
   { const e = RIBBON[RIBBON.length - 1];
@@ -1656,10 +1657,12 @@ function drawWater(t) {
   ctx.strokeStyle = rgb(mix([255, 255, 255], S.bot, 0.3)); ctx.lineWidth = 1;
   if (SEASON !== "winter") for (let k = 0; k < 4; k++) {
     const per = 9000 + k * 1700, c = Math.floor((t + k * 2300) / per), ph = ((t + k * 2300) % per) / per;
-    let x = 0, y = 0, ok = false;
-    for (let n = 0; n < 6 && !ok; n++) { x = LAKE.cx + (hash(c * 7 + n, k * 13) * 2 - 1) * LAKE.rx * 0.7; y = LAKE.cy + (hash(k * 5 + n, c * 3) * 2 - 1) * LAKE.ry * 0.7; ok = inPond(x, y, 0.7); }
-    if (!ok) continue;
-    for (const lag of [0, 0.18]) { const q = ph - lag; if (q <= 0) continue; ctx.globalAlpha = (1 - q) * (1 - q) * (0.22 + 0.14 * S.light); ringW(x, y, 0.06 + q * 0.42); ctx.stroke(); }
+    // each ring starts where a koi is at that moment, then stays put as the fish swims on
+    if (!koi.length) break;
+    const cr = calmRings[k] || (calmRings[k] = { c: -1, x: 0, y: 0 });
+    if (cr.c !== c) { const f = koi[(c + k * 3) % koi.length]; cr.c = c; cr.x = f.x; cr.y = f.y; }
+    const x = cr.x, y = cr.y;
+    for (const lag of [0, 0.18]) { const q = ph * 2.5 - lag; if (q <= 0 || q >= 1) continue; ctx.globalAlpha = (1 - q) * (1 - q) * (0.22 + 0.14 * S.light); ringW(x, y, 0.06 + q * 0.36); ctx.stroke(); }
   }
   // spring rain: small soft rings where the drops land
   for (const r of rainRings) for (const lag of [0, 0.3]) { const q = r.q - lag; if (q <= 0) continue; ctx.globalAlpha = (1 - q) * (1 - q) * (0.2 + 0.14 * S.light); ringW(r.x, r.y, 0.03 + q * 0.2); ctx.stroke(); }
