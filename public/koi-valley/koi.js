@@ -1687,7 +1687,7 @@ function spawnSnow() {
 }
 function stepLeaves(dt) {
   if (!reduceMotion) {
-    if (SEASON === "winter") { if (leaves.length < 160 && Math.random() < dt * 14) spawnSnow(); }
+    if (SEASON === "winter") { if (leaves.length < 160 && Math.random() < dt * 14 * snowAmt) spawnSnow(); }
     else if (leaves.length < 70 && Math.random() < dt * (SEASON === "summer" ? 0.25 : SEASON === "spring" ? 1.6 : 2.2)) spawnLeaf();
   }
   windX *= Math.pow(0.2, dt);
@@ -2161,7 +2161,7 @@ function seasonalItems(items, t, bias) {
 function isHalloween(d = new Date()) { return d.getMonth() === 9 && d.getDate() === 31; }
 function isNewYear(d = new Date()) { return (d.getMonth() === 11 && d.getDate() === 31 && hourNow >= 20) || (d.getMonth() === 0 && d.getDate() === 1 && hourNow < 1); }
 const shooting = [];
-let rainT = 0, rainOn = false, rainSpawn = 0;
+let rainT = 0, rainOn = false, rainSpawn = 0, snowAmt = 0;
 const rainRings = []; // where raindrops land on the pond
 const rainDrops = Array.from({ length: 140 }, () => [Math.random(), Math.random(), 0.6 + Math.random() * 0.6]);
 function stepSkyExtras(dt) {
@@ -2172,6 +2172,8 @@ function stepSkyExtras(dt) {
   rainT += dt;
   if (SEASON === "spring" && !reduceMotion) { const c = rainT % 60; rainOn = c > 40 && c < 52; }
   else rainOn = false;
+  // winter snows in spells: about half of each minute, easing in and out
+  { const c = rainT % 60, want = SEASON === "winter" && c > 5 && c < 35 ? 1 : 0; snowAmt += clamp(want - snowAmt, -dt / 4, dt / 4); }
   if (rainOn) for (rainSpawn += dt * 9; rainSpawn >= 1; rainSpawn--) {
     for (let n = 0; n < 6; n++) { const x = LAKE.cx + (Math.random() * 2 - 1) * LAKE.rx, y = LAKE.cy + (Math.random() * 2 - 1) * LAKE.ry; if (inPond(x, y, 0.9)) { rainRings.push({ x, y, q: 0 }); break; } }
   }
@@ -2227,7 +2229,7 @@ function drawSanta(x, y, t) {
   ctx.restore();
 }
 function drawRain() {
-  if (SEASON === "winter" && !reduceMotion) drawSnowfall();
+  if (SEASON === "winter" && !reduceMotion && snowAmt > 0) drawSnowfall();
   if (!rainOn) return;
   ctx.save(); ctx.strokeStyle = rgba(lit([210, 225, 240]), 0.45); ctx.lineWidth = 1;
   const now = performance.now();
@@ -2240,8 +2242,9 @@ function drawSnowfall() {
   const now = performance.now(), u = Math.min(W, H) / 800;
   ctx.save(); ctx.fillStyle = rgba(lit([248, 250, 255]), 0.8);
   ctx.beginPath();
-  for (const [rx, ry, sp] of rainDrops) {
-    const y = ((ry + now * 0.00005 * sp) % 1) * (H + 20) - 10, x = ((rx * W + Math.sin(now * 0.0006 * sp + rx * 40) * 18 * sp + y * 0.05) % W + W) % W, r = (0.9 + (sp - 0.6) * 2) * Math.max(1, u * 1.4);
+  const n = Math.round(rainDrops.length * snowAmt);
+  for (let k = 0; k < n; k++) {
+    const [rx, ry, sp] = rainDrops[k], y = ((ry + now * 0.00005 * sp) % 1) * (H + 20) - 10, x = ((rx * W + Math.sin(now * 0.0006 * sp + rx * 40) * 18 * sp + y * 0.05) % W + W) % W, r = (0.9 + (sp - 0.6) * 2) * Math.max(1, u * 1.4);
     ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, Math.PI * 2);
   }
   ctx.fill(); ctx.restore();
