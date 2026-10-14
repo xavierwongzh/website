@@ -1647,6 +1647,7 @@ function drawKoi(f) {
   }
   f.sx = S0[2][0]; f.sy = S0[2][1];
 }
+const calmRings = [];
 function ringW(x, y, r) { ctx.beginPath(); for (let k = 0; k <= 24; k++) { const a = k / 24 * Math.PI * 2, p = P(x + Math.cos(a) * r, y + Math.sin(a) * r, WATER_H); k ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); } }
 function drawWater(t) {
   { const e = RIBBON[RIBBON.length - 1];
@@ -1656,11 +1657,15 @@ function drawWater(t) {
   ctx.strokeStyle = rgb(mix([255, 255, 255], S.bot, 0.3)); ctx.lineWidth = 1;
   if (SEASON !== "winter") for (let k = 0; k < 4; k++) {
     const per = 9000 + k * 1700, c = Math.floor((t + k * 2300) / per), ph = ((t + k * 2300) % per) / per;
-    let x = 0, y = 0, ok = false;
-    for (let n = 0; n < 6 && !ok; n++) { x = LAKE.cx + (hash(c * 7 + n, k * 13) * 2 - 1) * LAKE.rx * 0.7; y = LAKE.cy + (hash(k * 5 + n, c * 3) * 2 - 1) * LAKE.ry * 0.7; ok = inPond(x, y, 0.7); }
-    if (!ok) continue;
-    for (const lag of [0, 0.18]) { const q = ph - lag; if (q <= 0) continue; ctx.globalAlpha = (1 - q) * (1 - q) * (0.22 + 0.14 * S.light); ringW(x, y, 0.06 + q * 0.42); ctx.stroke(); }
+    // each ring starts where a koi is at that moment, then stays put as the fish swims on
+    if (!koi.length) break;
+    const cr = calmRings[k] || (calmRings[k] = { c: -1, x: 0, y: 0 });
+    if (cr.c !== c) { const f = koi[(c + k * 3) % koi.length]; cr.c = c; cr.x = f.x; cr.y = f.y; }
+    const x = cr.x, y = cr.y;
+    for (const lag of [0, 0.18]) { const q = ph * 2.5 - lag; if (q <= 0 || q >= 1) continue; ctx.globalAlpha = (1 - q) * (1 - q) * (0.22 + 0.14 * S.light); ringW(x, y, 0.06 + q * 0.36); ctx.stroke(); }
   }
+  // spring rain: small soft rings where the drops land
+  for (const r of rainRings) for (const lag of [0, 0.3]) { const q = r.q - lag; if (q <= 0) continue; ctx.globalAlpha = (1 - q) * (1 - q) * (0.2 + 0.14 * S.light); ringW(r.x, r.y, 0.03 + q * 0.2); ctx.stroke(); }
   ctx.restore();
   for (const r of ripples) { ctx.strokeStyle = `rgba(255,255,255,${r.a})`; ctx.lineWidth = 1.2; ringW(r.x, r.y, r.r * 0.5); ctx.stroke(); }
   for (const fd of food) { const c = P(fd.x, fd.y, WATER_H); ctx.fillStyle = `rgba(214,170,98,${clamp(1 - fd.t / 12, 0, 1)})`; ctx.beginPath(); ctx.arc(c[0], c[1], Math.max(1.5, TW * 0.03), 0, Math.PI * 2); ctx.fill(); }
@@ -1677,12 +1682,13 @@ function spawnLeaf(t) {
     col: t.blobs.length ? t.blobs[(Math.random() * t.blobs.length) | 0][3] : C.maples[(Math.random() * 5) | 0], life: 0, landed: false, size: 0.05 + Math.random() * 0.03 });
 }
 function spawnSnow() {
-  const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * 10;
-  leaves.push({ x: ICX + Math.cos(a) * r, y: ICY + Math.sin(a) * r, z: 10 + Math.random() * 3, ph: Math.random() * 6, rot: 0, vr: 0, vz: 0.5 + Math.random() * 0.35, col: [250, 252, 255], life: 0, landed: false, size: 0.025 + Math.random() * 0.02, snow: true });
+  // a share of the flakes fall over the pond so a light dusting builds up on the ice
+  const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()), onPond = Math.random() < 0.25;
+  leaves.push({ x: onPond ? LAKE.cx + Math.cos(a) * r * LAKE.rx : ICX + Math.cos(a) * r * 10, y: onPond ? LAKE.cy + Math.sin(a) * r * LAKE.ry : ICY + Math.sin(a) * r * 10, z: 10 + Math.random() * 3, ph: Math.random() * 6, rot: 0, vr: 0, vz: 0.5 + Math.random() * 0.35, col: [250, 252, 255], life: 0, landed: false, size: 0.025 + Math.random() * 0.02, snow: true });
 }
 function stepLeaves(dt) {
   if (!reduceMotion) {
-    if (SEASON === "winter") { if (leaves.length < 160 && Math.random() < dt * 14) spawnSnow(); }
+    if (SEASON === "winter") { if (leaves.length < 320 && Math.random() < dt * 14 * snowAmt) spawnSnow(); }
     else if (leaves.length < 70 && Math.random() < dt * (SEASON === "summer" ? 0.25 : SEASON === "spring" ? 1.6 : 2.2)) spawnLeaf();
   }
   windX *= Math.pow(0.2, dt);
@@ -1695,13 +1701,13 @@ function stepLeaves(dt) {
       l.x += rxv[0] * sway * dt + 0.05 * dt; l.y += rxv[1] * sway * dt + 0.03 * dt; l.z -= l.vz * dt; l.rot += l.vr * dt;
       const g = inPond(l.x, l.y, 1) ? WATER_H : groundAt(l.x, l.y);
       if (g === null) { if (l.z < -4) leaves.splice(k, 1); continue; }
-      if (l.z <= g) { l.z = g; l.landed = true; l.life = 0; }
-    } else if (l.life > 6) leaves.splice(k, 1);
+      if (l.z <= g) { l.z = g; l.landed = true; l.life = 0; l.stay = l.snow && g === WATER_H ? 20 + Math.random() * 10 : 6; }
+    } else if (l.life > l.stay) leaves.splice(k, 1);
   }
 }
 function drawLeaves() {
   for (const l of leaves) {
-    const a = l.landed ? clamp(1 - l.life / 6, 0, 1) : 1, [x, y, f] = P(l.x, l.y, l.z), sz = Math.max(2.2, l.size * TW * f * cam.zoom);
+    const a = l.landed ? clamp(Math.min(1, (l.stay - l.life) / 6), 0, 1) : 1, [x, y, f] = P(l.x, l.y, l.z), sz = Math.max(2.2, l.size * TW * f * cam.zoom);
     ctx.save(); ctx.translate(x, y); ctx.rotate(l.rot); ctx.scale(1, l.landed ? 0.5 : 0.6 + 0.4 * Math.abs(Math.sin(l.ph)));
     ctx.fillStyle = rgba(lit(l.col, 1.05), a);
     if (l.snow) { ctx.beginPath(); ctx.arc(0, 0, sz * 0.7, 0, Math.PI * 2); ctx.fill(); ctx.restore(); continue; }
@@ -2156,7 +2162,8 @@ function seasonalItems(items, t, bias) {
 function isHalloween(d = new Date()) { return d.getMonth() === 9 && d.getDate() === 31; }
 function isNewYear(d = new Date()) { return (d.getMonth() === 11 && d.getDate() === 31 && hourNow >= 20) || (d.getMonth() === 0 && d.getDate() === 1 && hourNow < 1); }
 const shooting = [];
-let rainT = 0, rainOn = false;
+let rainT = 0, rainOn = false, rainSpawn = 0, snowAmt = 0;
+const rainRings = []; // where raindrops land on the pond
 const rainDrops = Array.from({ length: 140 }, () => [Math.random(), Math.random(), 0.6 + Math.random() * 0.6]);
 function stepSkyExtras(dt) {
   const night = clamp((0.72 - S.light) / 0.36, 0, 1);
@@ -2166,6 +2173,12 @@ function stepSkyExtras(dt) {
   rainT += dt;
   if (SEASON === "spring" && !reduceMotion) { const c = rainT % 60; rainOn = c > 40 && c < 52; }
   else rainOn = false;
+  // winter snows in spells: about half of each minute, easing in and out
+  { const c = rainT % 60, want = SEASON === "winter" && c > 5 && c < 35 ? 1 : 0; snowAmt += clamp(want - snowAmt, -dt / 4, dt / 4); }
+  if (rainOn) for (rainSpawn += dt * 9; rainSpawn >= 1; rainSpawn--) {
+    for (let n = 0; n < 6; n++) { const x = LAKE.cx + (Math.random() * 2 - 1) * LAKE.rx, y = LAKE.cy + (Math.random() * 2 - 1) * LAKE.ry; if (inPond(x, y, 0.9)) { rainRings.push({ x, y, q: 0 }); break; } }
+  }
+  for (let k = rainRings.length - 1; k >= 0; k--) if ((rainRings[k].q += dt * 0.6) >= 1) rainRings.splice(k, 1);
   if (SEASON === "winter") stepSmoke(dt);
 }
 function drawSkyExtras(t, night) {
@@ -2217,12 +2230,25 @@ function drawSanta(x, y, t) {
   ctx.restore();
 }
 function drawRain() {
+  if (SEASON === "winter" && !reduceMotion && snowAmt > 0) drawSnowfall();
   if (!rainOn) return;
   ctx.save(); ctx.strokeStyle = rgba(lit([210, 225, 240]), 0.45); ctx.lineWidth = 1;
   const now = performance.now();
   ctx.beginPath();
   for (const [rx, ry, sp] of rainDrops) { const y = ((ry + now * 0.0009 * sp) % 1) * H, x = (rx * W + y * 0.18) % W; ctx.moveTo(x, y); ctx.lineTo(x - 14 * 0.18, y - 14); }
   ctx.stroke(); ctx.fillStyle = "rgba(120,130,150,0.08)"; ctx.fillRect(0, 0, W, H); ctx.restore();
+}
+// winter: soft snow drifting down across the whole sky, nearer flakes a little bigger and faster
+function drawSnowfall() {
+  const now = performance.now(), u = Math.min(W, H) / 800;
+  ctx.save(); ctx.fillStyle = rgba(lit([248, 250, 255]), 0.8);
+  ctx.beginPath();
+  const n = Math.round(rainDrops.length * snowAmt);
+  for (let k = 0; k < n; k++) {
+    const [rx, ry, sp] = rainDrops[k], y = ((ry + now * 0.00005 * sp) % 1) * (H + 20) - 10, x = ((rx * W + Math.sin(now * 0.0006 * sp + rx * 40) * 18 * sp + y * 0.05) % W + W) % W, r = (0.9 + (sp - 0.6) * 2) * Math.max(1, u * 1.4);
+    ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, Math.PI * 2);
+  }
+  ctx.fill(); ctx.restore();
 }
 // winter: a snowman and chimney smoke
 const SNOWMAN = (() => {
