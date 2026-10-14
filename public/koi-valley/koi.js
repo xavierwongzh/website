@@ -1682,12 +1682,13 @@ function spawnLeaf(t) {
     col: t.blobs.length ? t.blobs[(Math.random() * t.blobs.length) | 0][3] : C.maples[(Math.random() * 5) | 0], life: 0, landed: false, size: 0.05 + Math.random() * 0.03 });
 }
 function spawnSnow() {
-  const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * 10;
-  leaves.push({ x: ICX + Math.cos(a) * r, y: ICY + Math.sin(a) * r, z: 10 + Math.random() * 3, ph: Math.random() * 6, rot: 0, vr: 0, vz: 0.5 + Math.random() * 0.35, col: [250, 252, 255], life: 0, landed: false, size: 0.025 + Math.random() * 0.02, snow: true });
+  // a share of the flakes fall over the pond so a light dusting builds up on the ice
+  const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()), onPond = Math.random() < 0.25;
+  leaves.push({ x: onPond ? LAKE.cx + Math.cos(a) * r * LAKE.rx : ICX + Math.cos(a) * r * 10, y: onPond ? LAKE.cy + Math.sin(a) * r * LAKE.ry : ICY + Math.sin(a) * r * 10, z: 10 + Math.random() * 3, ph: Math.random() * 6, rot: 0, vr: 0, vz: 0.5 + Math.random() * 0.35, col: [250, 252, 255], life: 0, landed: false, size: 0.025 + Math.random() * 0.02, snow: true });
 }
 function stepLeaves(dt) {
   if (!reduceMotion) {
-    if (SEASON === "winter") { if (leaves.length < 160 && Math.random() < dt * 14 * snowAmt) spawnSnow(); }
+    if (SEASON === "winter") { if (leaves.length < 320 && Math.random() < dt * 14 * snowAmt) spawnSnow(); }
     else if (leaves.length < 70 && Math.random() < dt * (SEASON === "summer" ? 0.25 : SEASON === "spring" ? 1.6 : 2.2)) spawnLeaf();
   }
   windX *= Math.pow(0.2, dt);
@@ -1700,13 +1701,13 @@ function stepLeaves(dt) {
       l.x += rxv[0] * sway * dt + 0.05 * dt; l.y += rxv[1] * sway * dt + 0.03 * dt; l.z -= l.vz * dt; l.rot += l.vr * dt;
       const g = inPond(l.x, l.y, 1) ? WATER_H : groundAt(l.x, l.y);
       if (g === null) { if (l.z < -4) leaves.splice(k, 1); continue; }
-      if (l.z <= g) { l.z = g; l.landed = true; l.life = 0; }
-    } else if (l.life > 6) leaves.splice(k, 1);
+      if (l.z <= g) { l.z = g; l.landed = true; l.life = 0; l.stay = l.snow && g === WATER_H ? 20 + Math.random() * 10 : 6; }
+    } else if (l.life > l.stay) leaves.splice(k, 1);
   }
 }
 function drawLeaves() {
   for (const l of leaves) {
-    const a = l.landed ? clamp(1 - l.life / 6, 0, 1) : 1, [x, y, f] = P(l.x, l.y, l.z), sz = Math.max(2.2, l.size * TW * f * cam.zoom);
+    const a = l.landed ? clamp(Math.min(1, (l.stay - l.life) / 6), 0, 1) : 1, [x, y, f] = P(l.x, l.y, l.z), sz = Math.max(2.2, l.size * TW * f * cam.zoom);
     ctx.save(); ctx.translate(x, y); ctx.rotate(l.rot); ctx.scale(1, l.landed ? 0.5 : 0.6 + 0.4 * Math.abs(Math.sin(l.ph)));
     ctx.fillStyle = rgba(lit(l.col, 1.05), a);
     if (l.snow) { ctx.beginPath(); ctx.arc(0, 0, sz * 0.7, 0, Math.PI * 2); ctx.fill(); ctx.restore(); continue; }
