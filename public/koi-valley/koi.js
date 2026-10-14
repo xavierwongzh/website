@@ -762,22 +762,30 @@ function makeLeaves(t) {
 }
 // Leafy crowns are many small shapes, so while the view holds still each tree is drawn once into its own
 // small canvas and stamped from there; while the island turns, zooms or the light changes they draw live.
-let TREE_KEY = "", treeStable = false;
+let TREE_KEY = "", treeStable = false, treeFrame = 0, treeBudget = 0, treeSlots = 0;
 function treeCacheKey() {
   const key = [cam.yaw, cam.pitch, cam.zoom, cam.persp].map(v => Math.round(v * 400)).join() + "," + Math.round(hourNow * 30) + SEASON + W + "x" + H + DPR;
   treeStable = key === TREE_KEY; TREE_KEY = key;
+  treeFrame++; treeBudget = W < 640 ? 6 : 10;
 }
+// Trees are drawn from cached sprites. While the island moves, each tree re-renders in turn
+// (a few per frame) and the rest reuse their last sprite, scaled to the current zoom.
 function drawTreeCached(t) {
-  if (!treeStable) { t.spr && (t.spr.key = ""); return drawTree(t); }
-  const [bx, by, f] = P(t.i, t.j, t.h), sz = Math.max(4, t.s * TW * cam.zoom * f), w = Math.ceil(sz * 2.4), h = Math.ceil(sz * 3.6), ox = w / 2, oy = h * 0.86;
+  const [bx, by, f] = P(t.i, t.j, t.h), sz = Math.max(4, t.s * TW * cam.zoom * f);
   let sp = t.spr;
-  if (!sp || sp.key !== TREE_KEY) {
+  if (t.slot === undefined) t.slot = treeSlots++;
+  const stale = !sp || sp.key !== TREE_KEY;
+  const turn = !treeStable && (treeFrame + t.slot) % Math.max(1, Math.ceil(treeSlots / treeBudget)) === 0;
+  if (!sp || (stale && (treeStable ? treeBudget > 0 : turn))) {
+    treeBudget--;
+    const w = Math.ceil(sz * 2.4), h = Math.ceil(sz * 3.6), ox = w / 2, oy = h * 0.86;
     sp = t.spr || (t.spr = { c: document.createElement("canvas") });
-    sp.c.width = Math.ceil(w * DPR); sp.c.height = Math.ceil(h * DPR); sp.w = w; sp.h = h; sp.ox = ox; sp.oy = oy; sp.key = TREE_KEY;
+    sp.c.width = Math.ceil(w * DPR); sp.c.height = Math.ceil(h * DPR); sp.w = w; sp.h = h; sp.ox = ox; sp.oy = oy; sp.sz = sz; sp.key = TREE_KEY;
     const g = sp.c.getContext("2d"); g.setTransform(DPR, 0, 0, DPR, (ox - bx) * DPR, (oy - by) * DPR);
     ctx = g; try { drawTree(t); } finally { ctx = mainCtx; }
   }
-  ctx.drawImage(sp.c, bx - sp.ox, by - sp.oy, sp.w, sp.h);
+  const k = sz / sp.sz;
+  ctx.drawImage(sp.c, bx - sp.ox * k, by - sp.oy * k, sp.w * k, sp.h * k);
 }
 function drawTree(t) {
   const k = t.s * 2.78, R0 = t.s * Math.SQRT2, base = [t.i, t.j, t.h];
