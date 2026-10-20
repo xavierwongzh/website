@@ -722,7 +722,14 @@ function drawTri(t) {
   if ((b.sx - a.sx) * (c.sy - a.sy) - (b.sy - a.sy) * (c.sx - a.sx) <= 0) return;
   let sh = 0.58 + 0.5 * Math.max(0, t.n[0] * SUN[0] + t.n[1] * SUN[1] + t.n[2] * SUN[2]);
   let col = t.water ? mix(t.col, S.bot, 0.12) : t.col;
-  if (ALPEN > 0.01 && t.peak) { const g = ALPEN * t.peak; col = mix(col, [255, 170, 156], g * 0.42); sh *= 1 + g * 0.3; }
+  if (ALPEN > 0.01 && t.peak) {
+    if (SEASON === "winter") {
+      // on an all-white island the blush reads best as warm sunlit faces against cool blue shade
+      const lit1 = Math.max(0, t.n[0] * SUN[0] + t.n[1] * SUN[1] + t.n[2] * SUN[2]), g = ALPEN * t.peak;
+      const w = 0.45 + 0.55 * lit1;
+      col = mix(mix(col, [176, 186, 228], g * 0.22 * (1 - lit1)), [255, 160, 152], g * 0.55 * w); sh *= 1 + g * 0.38 * w;
+    } else { const g = ALPEN * t.peak; col = mix(col, [255, 170, 156], g * 0.42); sh *= 1 + g * 0.3; }
+  }
   const fill = rgb(lit(col, t.water ? Math.max(sh, 0.92) : sh));
   ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.lineTo(c.sx, c.sy); ctx.closePath();
   ctx.fillStyle = fill; ctx.fill(); ctx.strokeStyle = fill; ctx.lineWidth = 0.8; ctx.stroke();
