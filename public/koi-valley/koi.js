@@ -1837,7 +1837,23 @@ function placeTags() {
     } else continue;
     // a label whose place is hidden behind the mountain hides with it
     if (hidden !== t.far) { t.far = hidden; t.el.classList.toggle("far", hidden); t.el.tabIndex = hidden ? -1 : 0; }
-    t.el.style.left = x.toFixed(1) + "px"; t.el.style.top = y.toFixed(1) + "px";
+    t.x = x; t.y = y;
+  }
+  // labels that land on top of each other (Projects and About on a phone) slide apart sideways,
+  // so each still points at its own place
+  const shown = TAGS.filter(t => t.x !== undefined && !t.far);
+  for (const t of shown) { t.w = t.el.offsetWidth; t.h = t.el.offsetHeight; t.dx = 0; }
+  for (let pass = 0; pass < 3; pass++)
+    for (let a = 0; a < shown.length; a++) for (let b = a + 1; b < shown.length; b++) {
+      const A = shown[a], B = shown[b], [L, R] = A.x + A.dx <= B.x + B.dx ? [A, B] : [B, A];
+      const over = (L.x + L.dx + L.w / 2 + 6) - (R.x + R.dx - R.w / 2);
+      if (over > 0 && Math.abs(A.y - B.y) < (A.h + B.h) / 2 + 2) { L.dx -= over / 2; R.dx += over / 2; }
+    }
+  for (const t of TAGS) {
+    if (t.x === undefined) continue;
+    const dx = t.far ? 0 : t.dx || 0;
+    t.el.style.left = (t.x + dx).toFixed(1) + "px"; t.el.style.top = t.y.toFixed(1) + "px";
+    t.el.style.setProperty("--dx", dx.toFixed(1) + "px");
   }
 }
 
@@ -1950,15 +1966,23 @@ function tap(x, y) {
 cv.addEventListener("wheel", e => { e.preventDefault(); VIEWS[view].zoomUser = clamp((VIEWS[view].zoomUser || 1) * Math.exp(-e.deltaY * 0.001), ZOOM_MIN, ZOOM_MAX); }, { passive: false });
 let holdYaw = null;
 document.querySelectorAll(".chip[data-view]").forEach(b => b.addEventListener("click", () => setView(b.dataset.view)));
+// on phones the time panel is a pill; tapping it opens the full panel, touching the island folds it again
+const clockEl = document.querySelector(".clock"), clockToggle = document.getElementById("clockToggle"), clockSeason = document.getElementById("clockSeason");
+function foldClock(open) { clockEl.classList.toggle("open", open); clockToggle.setAttribute("aria-expanded", String(open)); }
+clockToggle.addEventListener("click", () => { if (innerWidth <= 640) foldClock(!clockEl.classList.contains("open")); });
+cv.addEventListener("pointerdown", () => foldClock(false));
+document.addEventListener("keydown", e => { if (e.key === "Escape") foldClock(false); });
 function setSeason(v) {
   SEASON = v;
   for (const t of tris) triPrep(t, false);
   applyTreeSeason();
   leaves.length = 0;
   document.querySelectorAll(".chip[data-season]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.season === v)));
+  clockSeason.textContent = v[0].toUpperCase() + v.slice(1);
 }
 document.querySelectorAll(".chip[data-season]").forEach(b => b.addEventListener("click", () => setSeason(b.dataset.season)));
 document.querySelectorAll(".chip[data-season]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.season === SEASON)));
+clockSeason.textContent = SEASON[0].toUpperCase() + SEASON.slice(1);
 window.__season = setSeason;
 function setView(v) {
   view = v;

@@ -11,7 +11,8 @@ export const KOI_MARKUP = `
 </div>
 
 <div class="chrome clock" role="group" aria-label="Time of day">
-  <div class="row"><span class="time" id="clockTime">--:--</span><span class="phase" id="clockPhase">Morning</span></div>
+  <button class="row" id="clockToggle" type="button" aria-expanded="false" aria-controls="clockMore"><span class="time" id="clockTime">--:--</span><span class="season-now" id="clockSeason"></span><span class="phase" id="clockPhase">Morning</span><span class="chev" aria-hidden="true"></span></button>
+  <div class="more" id="clockMore">
   <label for="hour">Scrub the day</label>
   <input id="hour" type="range" min="0" max="24" step="0.05" value="12">
   <label>Season</label>
@@ -26,6 +27,7 @@ export const KOI_MARKUP = `
     <button class="chip" data-view="iso" aria-pressed="true">Isometric</button>
     <button class="chip" data-view="persp" aria-pressed="false">Perspective</button>
     <button class="chip" data-view="top" aria-pressed="false">Top-down</button>
+  </div>
   </div>
 </div>
 
