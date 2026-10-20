@@ -508,7 +508,8 @@ function triPrep(t, isUnder) {
   // snowline sits lower on the front face (toward the pond) so the peak reads white from the default view
   const front = clamp(((t.cx - 8.7) + (t.cy - 8.5)) / 3, 0, 1);
   if (t.ch > 6.4 + G.snow - front * 1.3 + hash(t.cx, t.cy) * 0.7 && nz > (SEASON === "winter" ? (t.ch > 3.5 ? 0.22 : 0.5) : 0.3 - front * 0.12) && rd > 0.45) col = mixC([240, 242, 246], [226, 232, 240], hash(t.cx * 3, t.cy * 2));
-  else if (nz < 0.66 || t.ch > 6.2) col = mixC([150, 132, 112], [128, 122, 120], smooth(4, 7, t.ch));
+  // winter cliffs are snow-dusted grey, so the steep faces don't read as dark shards poking through the snow
+  else if (nz < 0.66 || t.ch > 6.2) col = SEASON === "winter" ? mixC([206, 210, 220], [188, 194, 208], smooth(4, 7, t.ch)) : mixC([150, 132, 112], [128, 122, 120], smooth(4, 7, t.ch));
   else if (ld < 1.45) col = G.shore;
   else if (t.ch > 4.2) col = mixC(G.high[0], G.high[1], smooth(4.2, 6.2, t.ch));
   else col = meadow > 0.55 ? MEADOW[2] : meadow > -0.2 ? mixC(MEADOW[0], MEADOW[1], (meadow + 0.2) / 0.75) : MEADOW[3];
