@@ -293,8 +293,11 @@ let live = true, hourNow = 12, S = sky(12);
 const slider = document.getElementById("hour"), liveBtn = document.getElementById("live");
 function localHour() { const d = new Date(); return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600; }
 function fmt(h) { h = ((h % 24) + 24) % 24; const H = Math.floor(h), M = Math.floor((h - H) * 60); return `${String(H).padStart(2, "0")}:${String(M).padStart(2, "0")}`; }
+// alpenglow: the peak blushes pink just after sunrise and just after sunset, while the valley is already in shade
+let ALPEN = 0;
+const alpenglow = h => Math.max(Math.exp(-(((h - 6.5) / 0.55) ** 2)), Math.exp(-(((h - 18.9) / 0.6) ** 2)));
 function setHour(h, fromSlider) {
-  hourNow = ((h % 24) + 24) % 24; S = sky(hourNow);
+  hourNow = ((h % 24) + 24) % 24; S = sky(hourNow); ALPEN = alpenglow(hourNow);
   if (!fromSlider) slider.value = hourNow.toFixed(2);
   document.getElementById("clockTime").textContent = fmt(hourNow);
   document.getElementById("clockPhase").textContent = phaseName(hourNow);
@@ -510,6 +513,8 @@ function triPrep(t, isUnder) {
   else if (t.ch > 4.2) col = mixC(G.high[0], G.high[1], smooth(4.2, 6.2, t.ch));
   else col = meadow > 0.55 ? MEADOW[2] : meadow > -0.2 ? mixC(MEADOW[0], MEADOW[1], (meadow + 0.2) / 0.75) : MEADOW[3];
   t.col = col.map(v => v * jitter);
+  // how much of the dawn and dusk alpenglow this face catches: the upper peak, snow most of all
+  t.peak = smooth(6.0, 9.5, t.ch) * (col[0] > 220 ? 1 : 0.5);
 }
 for (const t of tris) triPrep(t, false);
 for (const t of under) triPrep(t, true);
@@ -715,8 +720,9 @@ const depthKey = (x, y, h) => ((x - CX) * sinY + (y - CY) * cosY) * cosP + (h - 
 function drawTri(t) {
   const a = verts[t.v[0]], b = verts[t.v[1]], c = verts[t.v[2]];
   if ((b.sx - a.sx) * (c.sy - a.sy) - (b.sy - a.sy) * (c.sx - a.sx) <= 0) return;
-  const sh = 0.58 + 0.5 * Math.max(0, t.n[0] * SUN[0] + t.n[1] * SUN[1] + t.n[2] * SUN[2]);
-  const col = t.water ? mix(t.col, S.bot, 0.12) : t.col;
+  let sh = 0.58 + 0.5 * Math.max(0, t.n[0] * SUN[0] + t.n[1] * SUN[1] + t.n[2] * SUN[2]);
+  let col = t.water ? mix(t.col, S.bot, 0.12) : t.col;
+  if (ALPEN > 0.01 && t.peak) { const g = ALPEN * t.peak; col = mix(col, [255, 170, 156], g * 0.42); sh *= 1 + g * 0.3; }
   const fill = rgb(lit(col, t.water ? Math.max(sh, 0.92) : sh));
   ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.lineTo(c.sx, c.sy); ctx.closePath();
   ctx.fillStyle = fill; ctx.fill(); ctx.strokeStyle = fill; ctx.lineWidth = 0.8; ctx.stroke();
