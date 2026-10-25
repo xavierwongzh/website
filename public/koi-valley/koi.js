@@ -38,6 +38,8 @@ const PROJECTS = [
     features: ["Coverage, labour-rule and rest-rule constraints for multi-role wards", "Fairness controls for weekends and night shifts", "Leave requests built into the model", "CP-SAT fallback that guarantees a usable roster"],
     outcomes: ["Piloted at Ward 6, St Andrew's Community Hospital", "Rostering time cut from over 3 hours to under 15 minutes per cycle (91.7% less)", "Commended by both nurse managers"],
     tags: ["Python", "Pyomo", "MILP", "CP-SAT", "Workforce Scheduling"],
+    video: "Nj80QaTULgM",
+    links: [["Video", "https://youtu.be/Nj80QaTULgM"]],
     koi: ["#f08a24","#f39a2e","#f39a2e","#f6a83a","#f6a83a","#f39a2e","#f08a24","#f08a24"] },
   { id: "runway", title: "San Diego Airport Simulation", sub: "Runway and surface operations at KSAN", when: "Sep – Dec 2025", role: "Airport Systems Modelling and Simulation",
     text: "A discrete-event study of one of the world's busiest single-runway airports, testing which operational changes actually move throughput.",
@@ -166,6 +168,7 @@ function closeDrawer() {
   camFocus.on = false; document.body.classList.remove("focused");
   document.body.classList.remove("drawer-open");
   drawer.classList.remove("open"); drawer.setAttribute("aria-hidden", "true");
+  dBody.querySelector("iframe.video")?.remove(); // closing the card stops a playing video
   if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
 }
 function focusOn(key) {
@@ -189,6 +192,8 @@ function openProject(id) {
     <p class="lede">${esc(p.sub)}</p>
     <p>${esc(p.text)}</p>
     ${p.detail ? `<p class="muted">${esc(p.detail)}</p>` : ""}
+    ${p.video ? `<button class="video" data-video="${p.video}" aria-label="Play the ${esc(p.title)} video"
+      style="background-image:url('https://i.ytimg.com/vi/${p.video}/hqdefault.jpg')"><span class="play"></span></button>` : ""}
     ${p.features ? `<div class="entry"><h3>What it does</h3>${list(p.features)}</div>` : ""}
     ${p.outcomes ? `<div class="entry"><h3>Outcomes</h3>${list(p.outcomes)}</div>` : ""}
     <div class="pills">${p.tags.map(t => `<span>${esc(t)}</span>`).join("")}</div>
@@ -247,6 +252,17 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && drawer.cla
 dBody.addEventListener("click", e => {
   const pr = e.target.closest("[data-proj]"); if (pr) return openProject(pr.dataset.proj);
   const op = e.target.closest("[data-open]"); if (op) return openPlace(op.dataset.open);
+  // the YouTube player only loads (from the no-cookie domain) once the visitor presses play
+  const vb = e.target.closest("[data-video]");
+  if (vb) {
+    const f = document.createElement("iframe");
+    f.className = "video";
+    f.src = `https://www.youtube-nocookie.com/embed/${vb.dataset.video}?autoplay=1&rel=0&playsinline=1`;
+    f.title = vb.getAttribute("aria-label").replace("Play the ", "");
+    f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+    f.allowFullscreen = true;
+    return vb.replaceWith(f);
+  }
   if (e.target.id === "copyMail") {
     const btn = e.target, mail = "xavierwongzh@gmail.com";
     const done = () => { btn.textContent = "Copied"; setTimeout(() => btn.textContent = "Copy", 1600); };
