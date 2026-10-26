@@ -24,7 +24,7 @@
 
   // A sample writes the lit colour, its coverage, how bright it is (picks the glyph)
   // and optionally a fixed glyph (fin rays, spots, outlines).
-  const hit = { r: 0, g: 0, b: 0, a: 1, l: 1, ch: "", glow: 0 };
+  const hit = { r: 0, g: 0, b: 0, a: 1, l: 1, ch: "", glow: 0, ink: null };
   function put(col, l, a, ch, glow) {
     hit.r = col[0] * l;
     hit.g = col[1] * l;
@@ -33,6 +33,7 @@
     hit.a = a === undefined ? 1 : a;
     hit.ch = ch || "";
     hit.glow = glow || 0;
+    hit.ink = null;
     return true;
   }
   // Shade a rounded surface whose normal in screen space is (nx, ny).
@@ -317,8 +318,64 @@
     },
   };
 
-  /* Moon jellyfish: a clear pulsing bell with four pink rings at its heart and a fringe of fine tentacles. */
-  const MOON = { bell: [176, 200, 230], ring: [232, 150, 210], fringe: [200, 220, 245] };
+  // Glyph-drawn creatures: a faint wash of colour with the shape carried by bright characters.
+  // `density` 0..1 picks a sparse or a heavy glyph; `ink` is the glyph colour.
+  const JELLY_RAMP = "'.:;otS%X8@";
+  function ink(col, density, a, glyphs) {
+    const g = glyphs || JELLY_RAMP;
+    put(col, 0.55, a, g[clamp(Math.floor(density * g.length), 0, g.length - 1)], 0.2);
+    hit.ink = col;
+    return true;
+  }
+
+  /* Jellyfish seen side on as they drift: a domed bell of dense glyphs, thin tentacles and
+     frilly oral arms streaming behind. Moon jellies are lavender; sea nettles amber with red tentacles. */
+  function jelly(c, pal, arms, tents, armLen, tentLen) {
+    const { hx, hy } = F;
+    const p = pulse(c.phase);
+    const bw = 0.5 * (1 + 0.08 * p), bh = 0.36 * (1 - 0.1 * p);
+    // Bell: a dome rising towards the heading, its rim slightly cupped.
+    const v = hy / bw;
+    const rim = 0.05 * (1 - v * v);
+    if (Math.abs(v) <= 1 && hx >= -rim) {
+      const u = (hx + rim) / (bh + rim);
+      const r = u * u + v * v;
+      if (r <= 1) {
+        // Dense at the crown and edges, thinner inside, with the rim scalloped.
+        const edge = smooth(0.62, 1, r);
+        const crown = smooth(0.55, 1, u);
+        let d = 0.35 + 0.45 * edge + 0.25 * crown + 0.15 * (hash2(Math.floor(hx * 90 + 300), Math.floor(hy * 90 + 300)) - 0.5);
+        // Gonads: four soft marks under the crown.
+        let col = pal.bell;
+        for (let i = 0; i < 4; i++) {
+          const gx = 0.42 * bh, gy = (i - 1.5) * 0.17 * bw;
+          if (((hx - gx) / 0.06) ** 2 + ((hy - gy) / 0.065) ** 2 < 1) { col = pal.mark; d += 0.2; }
+        }
+        if (u < 0.12 && Math.abs(fract(v * 9) - 0.5) < 0.18) d *= 0.4;
+        return ink(col, clamp(d, 0, 1), 0.14 + 0.1 * edge);
+      }
+    }
+    const back = -hx;
+    if (back < 0) return false;
+    // Oral arms: frilly ribbons from under the centre of the bell.
+    for (let i = 0; i < arms; i++) {
+      const off = (i - (arms - 1) / 2) * 0.09;
+      const y = off * (1 + back * 0.3) + 0.05 * Math.sin(back * 5 - c.phase * 0.6 + i * 1.3) * smooth(0, 0.4, back);
+      const w = (0.04 + 0.015 * Math.sin(back * 26 + i)) * (1 - back / (armLen * 1.15));
+      if (back < armLen && Math.abs(hy - y) < w) return ink(pal.arm, 0.45 + 0.4 * (1 - back / armLen), 0.12);
+    }
+    // Tentacles: thin, from all round the rim, fading out.
+    for (let i = 0; i < tents; i++) {
+      const off = (i / (tents - 1) - 0.5) * 0.92 * bw * 2;
+      const y = off * (1 + back * 0.12) + 0.05 * Math.sin(back * 4.5 - c.phase * 0.5 + i * 1.9) * smooth(0, 0.5, back);
+      const len = tentLen * (0.65 + 0.35 * hash2(i, 7));
+      if (back < len && Math.abs(hy - y) < 0.011) return ink(pal.tent, 0.15 + 0.35 * (1 - back / len), 0.05, "'.:;|");
+    }
+    return false;
+  }
+  const MOON_INK = { bell: [196, 168, 232], mark: [240, 170, 220], arm: [214, 190, 240], tent: [180, 160, 220] };
+  const NETTLE_INK = { bell: [238, 160, 84], mark: [250, 200, 130], arm: [244, 226, 196], tent: [210, 84, 70] };
+
   function pulse(ph) {
     // Quick contraction, slow relax.
     const p = fract(ph / TAU);
@@ -326,65 +383,18 @@
   }
   const moonJelly = {
     radial: true,
-    reach: 0.6,
+    reach: 1.2,
     shape(c) {
-      const { hx, hy } = F;
-      const k = 1 - 0.07 * pulse(c.phase);
-      const r = Math.hypot(hx, hy) / k;
-      const ang = Math.atan2(hy, hx) + c.spin;
-      if (r > 0.56) return false;
-      if (r > 0.48) {
-        // Fringe: short tentacles all round the rim.
-        if (Math.abs(fract(ang / TAU * 64) - 0.5) < 0.18) return put(MOON.fringe, 0.9, 0.45, lineGlyph(hx, hy), 0.2);
-        return false;
-      }
-      // Four rings in a clover around the centre.
-      for (let i = 0; i < 4; i++) {
-        const ga = (i / 4) * TAU + Math.PI / 4 - c.spin;
-        const gx = Math.cos(ga) * 0.15 * k, gy = Math.sin(ga) * 0.15 * k;
-        const d = Math.hypot(hx - gx, hy - gy);
-        if (Math.abs(d - 0.085 * k) < 0.026) return put(MOON.ring, 0.95, 0.7, Math.abs(d - 0.085 * k) < 0.012 ? "o" : " ", 0.3);
-      }
-      const canal = Math.abs(fract(ang / TAU * 16) - 0.5) > 0.46 && r > 0.25;
-      const t = r / 0.48;
-      const [nx, ny] = [hx / 0.5 * 0.5, hy / 0.5 * 0.5];
-      return put(MOON.bell, lit(nx, ny), 0.22 + 0.3 * t * t, canal ? lineGlyph(hx, hy) : t > 0.94 ? "o" : " ", 0.25);
+      return jelly(c, MOON_INK, 4, 12, 0.55, 1.1);
     },
   };
 
-  /* Sea nettle: amber bell with dark radial stripes, cream oral arms and red tentacles trailing behind. */
-  const NETTLE = { bell: [222, 138, 60], stripe: [150, 70, 34], arm: [238, 222, 192], tent: [176, 62, 50] };
+  /* Sea nettle: the same build with longer arms and tentacles. */
   const seaNettle = {
     radial: true,
-    reach: 1.6,
+    reach: 1.9,
     shape(c) {
-      const { hx, hy } = F;
-      const k = 1 - 0.06 * pulse(c.phase);
-      const r = Math.hypot(hx, hy) / k;
-      const ang = Math.atan2(hy, hx);
-      if (r < 0.45) {
-        const t = r / 0.45;
-        const scallop = 0.45 * (1 - 0.04 * Math.abs(Math.sin(ang * 8)));
-        if (r > scallop) return false;
-        const [nx, ny] = [hx / 0.45 * 0.55, hy / 0.45 * 0.55];
-        const stripe = Math.abs(fract(ang / TAU * 16 + 0.25) - 0.5) < 0.12 && t > 0.3;
-        return put(stripe ? NETTLE.stripe : NETTLE.bell, lit(nx, ny), 0.62, stripe ? lineGlyph(hx, hy) : "", 0.1);
-      }
-      // Arms and tentacles trail behind the bell (towards -hx), waving gently.
-      const back = -hx;
-      if (back < 0) return false;
-      for (let i = 0; i < 4; i++) {
-        const off = (i - 1.5) * 0.08;
-        const y = off + 0.06 * Math.sin(back * 4 - c.phase * 0.5 + i) * smooth(0, 0.6, back);
-        const w = 0.035 * (1 - back / 1.6) + 0.008 * Math.sin(back * 30 + i);
-        if (back < 1.5 && Math.abs(hy - y) < w) return put(NETTLE.arm, 0.9, 0.75, "~");
-      }
-      for (let i = 0; i < 8; i++) {
-        const off = (i - 3.5) * 0.11;
-        const y = off * (1 + back * 0.15) + 0.05 * Math.sin(back * 5 - c.phase * 0.6 + i * 1.7);
-        if (back < 1.55 && Math.abs(hy - y) < 0.009) return put(NETTLE.tent, 0.9, 0.6, lineGlyph(1, 0.2 * Math.cos(back * 5 + i)));
-      }
-      return false;
+      return jelly(c, NETTLE_INK, 4, 10, 1.3, 1.8);
     },
   };
 
@@ -397,17 +407,18 @@
       const { s, a, px, py } = F;
       if (s < 0 || s > 1) return false;
       const sa = Math.abs(a);
-      if (s > 0.78) {
-        const t = (s - 0.78) / 0.22;
-        const w = 0.02 + 0.1 * t;
-        if (sa < w && sa > 0.06 * t * t * 0.0 + (s > 0.92 ? 0.04 * (1 - (1 - t) * 4) : -1)) return put(SARDINE.back, 0.8, 1, lineGlyph(F.tx, F.ty));
+      // Forked tail: two lobes spreading from the stalk with a V notch between them.
+      if (s > 0.8) {
+        const t = (s - 0.8) / 0.2;
+        if (sa < 0.018 + 0.09 * t && sa > 0.07 * t * t - 0.01) return put(SARDINE.back, 0.85, 1, lineGlyph(F.tx, F.ty));
         return false;
       }
-      const w = s < 0.25 ? 0.09 * Math.pow(s / 0.25, 0.5) : 0.02 + 0.07 * (1 - smooth(0.25, 0.78, s));
+      const w = s < 0.22 ? 0.085 * Math.pow(s / 0.22, 0.5) : 0.018 + 0.067 * (1 - smooth(0.22, 0.8, s));
       if (sa > w) return false;
       const across = a / w;
-      const col = Math.abs(across) < 0.35 ? SARDINE.back : SARDINE.flank;
-      return put(col, bodyLight(across, px, py), 1, "", Math.abs(across) > 0.5 ? 0.06 : 0);
+      if (s > 0.06 && s < 0.11 && Math.abs(Math.abs(across) - 0.5) < 0.25) return put([20, 26, 34], 1, 1, "o");
+      const col = Math.abs(across) < 0.4 ? SARDINE.back : SARDINE.flank;
+      return put(col, bodyLight(across, px, py), 1, "", Math.abs(across) > 0.55 ? 0.08 : 0);
     },
   };
 
@@ -464,10 +475,7 @@
     },
   };
 
-  /* Bait fish: so small they are drawn as a classic three-glyph fish, ><> or <><, with a silver glint. */
-  const baitfish = { sprite: true, len: 0.5, reach: 0, shape: () => false };
-
-  const SPECIES = { baitfish, hammerhead, whaleShark, turtle, stingray, manta, moonJelly, seaNettle, sardine, lotus, sakura };
+  const SPECIES = { hammerhead, whaleShark, turtle, stingray, manta, moonJelly, seaNettle, sardine, lotus, sakura };
 
   /* ── creature state ───────────────────────────────────────────────── */
 
@@ -499,6 +507,7 @@
   // Sparse glyphs on lit skin, dense ones in shadow.
   const RAMP = ":;t%SX8#@";
   const SUB = [0.25, 0.3, 0.75, 0.3, 0.25, 0.72, 0.75, 0.72];
+  const CENTRE = [0.5, 0.5];
   const FONT = '"IBM Plex Mono", "DejaVu Sans Mono", ui-monospace, Menlo, monospace';
 
   class Renderer {
@@ -515,7 +524,7 @@
       this.h = h;
       this.dpr = dpr;
       this.cw = cell || clamp(Math.round(w / 150), 7, 10);
-      this.ch = Math.round(this.cw * 1.55);
+      this.ch = Math.round(this.cw * 1.6);
       this.cols = Math.ceil(w / this.cw);
       this.rows = Math.ceil(h / this.ch);
       this.canvas.width = Math.round(w * dpr);
@@ -569,37 +578,8 @@
       }
     }
 
-    // A tiny fish as three glyphs along its heading.
-    drawSprite(c, castShadow) {
-      const { cols, rows, cw, ch } = this;
-      const hx = Math.cos(c.heading), hy = Math.sin(c.heading);
-      // Always drawn side on, as ><> or <><, which reads as a fish at any heading.
-      const glyphs = hx > 0 ? [">", "<", ">"] : ["<", ">", "<"];
-      // Head first, then body and tail stepping back a cell at a time.
-      const stepX = hx > 0 ? -1 : 1, stepY = 0;
-      const off = castShadow || 0;
-      const q0 = Math.floor((c.x + off * 0.9) / cw), r0 = Math.floor((c.y + off) / ch);
-      const glint = 0.5 + 0.5 * Math.sin(c.phase * 2);
-      const night = this.night;
-      for (let k = 0; k < 3; k++) {
-        // Facing right the string reads tail-body-head, so walk it from the head end.
-        const q = q0 + stepX * k, r = r0 + stepY * k;
-        if (q < 0 || r < 0 || q >= cols || r >= rows) continue;
-        const i = r * cols + q;
-        if (castShadow) { this.shadow[i] = Math.max(this.shadow[i], 0.18 * (1 - night)); continue; }
-        const fog = c.depth * 0.6;
-        const base = mix(150 + 70 * glint, 120, fog) * mix(1, 0.5, night);
-        this.tr[i] = mix(this.tr[i], base * 0.62, 0.55);
-        this.tg[i] = mix(this.tg[i], base * 0.8, 0.55);
-        this.tb[i] = mix(this.tb[i], base * 0.9, 0.55);
-        this.gl[i] = glyphs[hx > 0 ? 2 - k : k];
-        this.gr[i] = Math.min(255, base * 1.05); this.gg[i] = Math.min(255, base * 1.12); this.gb[i] = Math.min(255, base * 1.18);
-      }
-    }
-
     // Sample a creature over the cells its bounding box covers.
     draw(c, castShadow) {
-      if (c.sp.sprite) return this.drawSprite(c, castShadow);
       const { cols, rows, cw, ch } = this;
       const sp = c.sp;
       const L = c.L;
@@ -627,13 +607,15 @@
       if (sp.radial) { htx = Math.cos(c.heading); hty = Math.sin(c.heading); }
       F.htx = htx; F.hty = hty;
       const night = this.night;
+      const sub = this.cw <= 6 ? CENTRE : SUB;
       const water = mixc([30, 112, 128], [8, 22, 38], night);
       for (let r = r0; r <= r1; r++) {
         for (let q = c0; q <= c1; q++) {
-          // Four samples per cell: coverage softens the outline, the first hit gives the glyph.
-          let n = 0, R = 0, G = 0, B = 0, A = 0, L0 = 0, ch0 = "", glow = 0, first = true;
-          for (let k = 0; k < 8; k += 2) {
-            const X = (q + SUB[k]) * cw - offX, Y = (r + SUB[k + 1]) * ch - offY;
+          // Big cells take four samples so coverage can soften the outline; fine cells need only one.
+          // The first hit gives the glyph.
+          let n = 0, R = 0, G = 0, B = 0, A = 0, L0 = 0, ch0 = "", glow = 0, ink0 = null, first = true;
+          for (let k = 0; k < sub.length; k += 2) {
+            const X = (q + sub[k]) * cw - offX, Y = (r + sub[k + 1]) * ch - offY;
             const dx = (X - nodes[0]) / L, dy = (Y - nodes[1]) / L;
             F.hx = dx * htx + dy * hty;
             F.hy = -dx * hty + dy * htx;
@@ -641,11 +623,11 @@
             if (!sp.shape(c)) continue;
             n++;
             R += hit.r; G += hit.g; B += hit.b; A += hit.a;
-            if (first || (hit.ch && !ch0)) { L0 = hit.l; ch0 = hit.ch; glow = hit.glow; first = false; }
+            if (first || (hit.ch && !ch0)) { L0 = hit.l; ch0 = hit.ch; glow = hit.glow; ink0 = hit.ink; first = false; }
           }
           if (!n) continue;
           const i = r * cols + q;
-          const cover = n / 4;
+          const cover = (n * 2) / sub.length;
           if (castShadow) {
             this.shadow[i] = Math.max(this.shadow[i], (0.32 - 0.12 * night) * (A / n) * cover);
             continue;
@@ -659,7 +641,14 @@
           this.tr[i] = mix(this.tr[i], R, a);
           this.tg[i] = mix(this.tg[i], G, a);
           this.tb[i] = mix(this.tb[i], B, a);
-          if (cover < 0.5 && !ch0) {
+          if (ink0) {
+            // Glyph-drawn: the character carries the colour; it fades with depth, and holds up at night.
+            const k = mix(1, 0.8, night) * (1 - c.depth * 0.3);
+            this.gl[i] = ch0;
+            this.gr[i] = mix(ink0[0] * k, water[0], fog * 0.6);
+            this.gg[i] = mix(ink0[1] * k, water[1], fog * 0.6);
+            this.gb[i] = mix(ink0[2] * k, water[2], fog * 0.6);
+          } else if (cover < 0.5 && !ch0) {
             // Soft edge: a light glyph instead of a block.
             this.gl[i] = cover < 0.3 ? "." : ":";
             this.gr[i] = Math.min(255, R * 1.1); this.gg[i] = Math.min(255, G * 1.1); this.gb[i] = Math.min(255, B * 1.1);
@@ -687,7 +676,7 @@
         const ax = n[i * 2], ay = n[i * 2 + 1], bx = n[i * 2 + 2], by = n[i * 2 + 3];
         const ex = bx - ax, ey = by - ay;
         const el = ex * ex + ey * ey || 1;
-        let t = ((X - ax) * ex + (Y - ay) * ey) / el;
+        const t = ((X - ax) * ex + (Y - ay) * ey) / el;
         const tc = clamp(t, i === 0 ? -1 : 0, i === NODES - 2 ? 2 : 1);
         const qx = ax + ex * tc, qy = ay + ey * tc;
         const d = (X - qx) ** 2 + (Y - qy) ** 2;
@@ -699,10 +688,6 @@
           bs = ((i + tc) / (NODES - 1)) * span;
           // Right of the heading: (-ty, tx)
           ba = ((X - qx) * -ty + (Y - qy) * tx) / L;
-          if (tc !== t) {
-            // Beyond the ends: keep the distance along the line so the snout and tail tip stay round.
-            ba = ((X - qx) * -ty + (Y - qy) * tx) / L;
-          }
         }
       }
       F.s = bs;
@@ -725,7 +710,7 @@
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(this.tileCanvas, 0, 0, cols * cw * dpr, rows * ch * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.font = `600 ${Math.round(ch * 0.8)}px ${FONT}`;
+      ctx.font = `600 ${Math.max(5, Math.round(ch * 0.85))}px ${FONT}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       let last = "";
@@ -803,17 +788,16 @@
     turtle: { speed: 22, turn: 0.2, shy: 0.4 },
     stingray: { speed: 26, turn: 0.25, shy: 0.6 },
     manta: { speed: 28, turn: 0.18, shy: 0.2 },
-    sardine: { speed: 44, turn: 1.2, shy: 1 },
+    sardine: { speed: 46, turn: 2.2, shy: 1.6 },
     moonJelly: { speed: 6, turn: 0.1, shy: 0 },
     seaNettle: { speed: 7, turn: 0.1, shy: 0 },
     lotus: { speed: 3, turn: 0.05, shy: 0 },
     sakura: { speed: 5, turn: 0.1, shy: 0 },
-    baitfish: { speed: 46, turn: 2.2, shy: 1.6 },
   };
   const NAMES = {
     whaleShark: "Whale shark", hammerhead: "Hammerhead", turtle: "Sea turtle", stingray: "Blue-spotted stingray",
     manta: "Manta ray", sardine: "Sardine", moonJelly: "Moon jellyfish", seaNettle: "Sea nettle",
-    lotus: "Lotus", sakura: "Cherry blossom", baitfish: "Bait fish",
+    lotus: "Lotus", sakura: "Cherry blossom",
   };
 
   function angleTo(a, b) {
@@ -841,7 +825,7 @@
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       this.w = w; this.h = h;
       this.unit = clamp(Math.sqrt(w * h) / 1100, 0.5, 1.15);
-      this.renderer.resize(w, h, dpr, w < 600 ? 6 : clamp(Math.round(w / 160), 7, 10));
+      this.renderer.resize(w, h, dpr, w < 600 ? 4 : clamp(Math.round(w / 280), 4, 6));
       if (!this.creatures.length) this.populate();
     }
 
@@ -883,9 +867,9 @@
       // Schools of bait fish.
       for (let s = 0; s < (small ? 1 : 2); s++) {
         const cx = this.rand(0.2, 0.8) * this.w, cy = this.rand(0.25, 0.75) * this.h, hd = this.rand(0, TAU);
-        const n = small ? 16 : 22;
+        const n = small ? 14 : 20;
         for (let i = 0; i < n; i++) {
-          this.spawn("baitfish", 20, 0.08 + 0.06 * s, { x: cx + this.rand(-60, 60), y: cy + this.rand(-40, 40), heading: hd, school: s });
+          this.spawn("sardine", 46, 0.08 + 0.08 * s, { x: cx + this.rand(-90, 90), y: cy + this.rand(-60, 60), heading: hd, school: s, bend: 1 });
         }
       }
       // On the surface.
@@ -958,7 +942,7 @@
           for (const o of this.creatures) {
             if (o === c || o.school !== c.school) continue;
             const dx = c.x - o.x, dy = c.y - o.y;
-            if (Math.abs(dx) < 22 && Math.abs(dy) < 16) { c.x += dx * dt * 1.5; c.y += dy * dt * 1.5; }
+            if (Math.abs(dx) < c.L * 0.7 && Math.abs(dy) < c.L * 0.45) { c.x += dx * dt * 1.5; c.y += dy * dt * 1.5; }
           }
         }
         // Shy creatures turn away from the pointer; bait fish bolt.
@@ -1003,7 +987,7 @@
     pick(x, y) {
       let best = null, bd = Infinity;
       for (const c of this.creatures) {
-        if (c.kind === "baitfish") continue;
+        if (c.kind === "sardine") continue;
         const n = c.nodes;
         const span = c.sp.radial ? 0 : NODES - 1;
         for (let i = 0; i <= span; i += 2) {
