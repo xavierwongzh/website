@@ -866,7 +866,8 @@
           if (v > max) { c.vx *= max / v; c.vy *= max / v; }
           if (v < min) { c.vx *= min / v; c.vy *= min / v; }
           c.vy *= 1 - dt * 0.8;
-          c.x += c.vx * dt; c.y += c.vy * dt;
+          c.x += c.vx * dt;
+          c.y = clamp(c.y + c.vy * dt, top + c.L * 0.2, bottom - c.L * 0.2);
           if (Math.sign(c.vx) !== c.dir && Math.abs(c.vx) > 6) this.turn(c);
           c.pitch = clamp(Math.atan2(c.vy, Math.abs(c.vx)), -0.6, 0.6) * c.dir;
         } else {
