@@ -76,12 +76,19 @@ body {
   text-transform: none;
 }
 
+/* On winter ice by day the name needs dark ink, like Koi Valley's name against a bright sky. */
+:root[data-season="winter"]:not([data-night="1"]) .aq-head h1,
+:root[data-season="winter"]:not([data-night="1"]) .aq-head p {
+  color: #1f2a3a;
+  text-shadow: 0 1px 10px rgba(255, 255, 255, 0.6);
+}
+
 /* Same panel as Koi Valley's clock in the top right. */
 .aq-panel {
   position: fixed;
   top: calc(18px + env(safe-area-inset-top, 0px));
   right: 20px;
-  width: 240px;
+  width: 288px;
   display: grid;
   gap: 8px;
   padding: 12px 14px;

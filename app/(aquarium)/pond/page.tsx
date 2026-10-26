@@ -18,6 +18,13 @@ export default function Pond() {
         </div>
         <label className="label" htmlFor="aq-hour">Scrub the day</label>
         <input id="aq-hour" type="range" min="0" max="23.99" step="0.05" defaultValue="12" />
+        <span className="label">Season</span>
+        <div className="btns" role="group" aria-label="Season">
+          <button className="chip" type="button" data-season="spring" aria-pressed="false">Spring</button>
+          <button className="chip" type="button" data-season="summer" aria-pressed="false">Summer</button>
+          <button className="chip" type="button" data-season="autumn" aria-pressed="false">Autumn</button>
+          <button className="chip" type="button" data-season="winter" aria-pressed="false">Winter</button>
+        </div>
         <span className="label">Light</span>
         <div className="btns" role="group" aria-label="Light">
           <button className="chip" type="button" data-mode="auto" aria-pressed="true">Auto</button>

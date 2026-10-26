@@ -513,7 +513,32 @@
     },
   };
 
-  const SPECIES = { hammerhead, whaleShark, turtle, stingray, manta, dolphin, moonJelly, seaNettle, blueJelly, sardine, lotus };
+  /* Maple leaf: five pointed lobes and a stem, drifting on the surface in autumn. */
+  const MAPLE_COLS = [[214, 84, 32], [232, 140, 44], [186, 54, 30], [240, 182, 58]];
+  const maple = {
+    radial: true,
+    surface: true,
+    season: "autumn",
+    reach: 0.6,
+    shape(c) {
+      const { hx, hy } = F;
+      const col = MAPLE_COLS[c.tint || 0];
+      // Stem out of the back.
+      if (hx < -0.05 && hx > -0.42 && Math.abs(hy - 0.04 * (hx + 0.05)) < 0.022) return put(mixc(col, [120, 70, 30], 0.4), 0.85, 1, lineGlyph(F.htx, F.hty));
+      const r = Math.hypot(hx, hy);
+      const ang = Math.atan2(hy, hx);
+      // Lobes: the front three long, the two at the back shorter, each ending in a point.
+      const lobe = Math.abs(fract(ang / TAU * 5 + 0.5) - 0.5) * 2; // 0 at a lobe tip, 1 between lobes
+      const back = smooth(1.8, 3.1, Math.abs(ang));
+      const R = (0.5 - 0.18 * back) * (1 - 0.55 * Math.pow(lobe, 0.7));
+      if (r > R) return false;
+      // Veins from the centre to each tip.
+      const vein = lobe < 0.07 && r > 0.04;
+      return put(col, lit(hx * 0.5, hy * 0.5), 1, vein ? lineGlyph(hx, hy) : "");
+    },
+  };
+
+  const SPECIES = { hammerhead, whaleShark, turtle, stingray, manta, dolphin, moonJelly, seaNettle, blueJelly, sardine, lotus, maple };
 
   /* ── creature state ───────────────────────────────────────────────── */
 
@@ -556,6 +581,7 @@
       this.tileCtx = this.tileCanvas.getContext("2d");
       this.styles = new Map();
       this.night = 0;
+      this.season = "summer";
     }
     resize(w, h, dpr, cell) {
       this.w = w;
@@ -579,6 +605,33 @@
       this.gg = new Float32Array(n);
       this.gb = new Float32Array(n);
       this.shadow = new Float32Array(n);
+      this.crackMap = this.buildCracks();
+    }
+
+    // A few long jagged cracks in the ice, with the odd branch, laid out once per size.
+    buildCracks() {
+      const { cols, rows, cw, ch, w, h } = this;
+      const map = new Array(cols * rows).fill("");
+      let seed = 11;
+      const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+      const walk = (x, y, ang, steps, branch) => {
+        for (let k = 0; k < steps; k++) {
+          ang += (rnd() - 0.5) * 0.9;
+          const len = 10 + rnd() * 16;
+          const nx = x + Math.cos(ang) * len, ny = y + Math.sin(ang) * len;
+          const n = Math.ceil(len / (cw * 0.5));
+          for (let j = 0; j <= n; j++) {
+            const px = x + (nx - x) * (j / n), py = y + (ny - y) * (j / n);
+            const q = Math.floor(px / cw), r = Math.floor(py / ch);
+            if (q >= 0 && r >= 0 && q < cols && r < rows) map[r * cols + q] = lineGlyph(nx - x, ny - y);
+          }
+          x = nx; y = ny;
+          if (branch && rnd() < 0.12) walk(x, y, ang + (rnd() < 0.5 ? -1 : 1) * (0.7 + rnd() * 0.6), 4 + Math.floor(rnd() * 8), false);
+        }
+      };
+      const count = Math.max(2, Math.round((w * h) / 260000));
+      for (let c = 0; c < count; c++) walk(rnd() * w, rnd() * h, rnd() * TAU, 14 + Math.floor(rnd() * 16), true);
+      return map;
     }
 
     water(t) {
@@ -803,6 +856,88 @@
       }
     }
 
+    // Frozen over: tiles and glyphs frost towards the ice so creatures show only as shapes beneath it,
+    // with long hairline cracks, drifts of snow and a sparkle of frost on top. The ice never moves.
+    ice() {
+      const { cols, rows, cw, ch, tr, tg, tb, gl, gr, gg, gb } = this;
+      const n = this.night;
+      const iceCol = mixc([200, 224, 236], [30, 46, 66], n);
+      const cover = mix(0.66, 0.55, n);
+      for (let r = 0; r < rows; r++) {
+        for (let q = 0; q < cols; q++) {
+          const i = r * cols + q;
+          const x = q * cw, y = r * ch;
+          const drift = smooth(0.78, 0.97, 0.5 + 0.25 * Math.sin(x * 0.006 + Math.sin(y * 0.004) * 2) + 0.25 * Math.sin(y * 0.009 - x * 0.002 + 1.7));
+          const k = cover + 0.22 * drift;
+          const snowCol = mixc([244, 247, 250], [70, 84, 104], n);
+          const base = mixc(iceCol, snowCol, drift);
+          tr[i] = mix(tr[i], base[0], k); tg[i] = mix(tg[i], base[1], k); tb[i] = mix(tb[i], base[2], k);
+          if (gl[i]) { gr[i] = mix(gr[i], base[0], k * 0.85); gg[i] = mix(gg[i], base[1], k * 0.85); gb[i] = mix(gb[i], base[2], k * 0.85); }
+          const crackCol = mixc([255, 255, 255], [150, 176, 200], n);
+          const cg = this.crackMap && this.crackMap[i];
+          if (cg && drift < 0.5) {
+            gl[i] = cg;
+            gr[i] = crackCol[0]; gg[i] = crackCol[1]; gb[i] = crackCol[2];
+          } else if (drift > 0.2 && hash2(q, r) < 0.12) {
+            gl[i] = hash2(r, q) < 0.5 ? "." : ":";
+            gr[i] = snowCol[0] * 0.85; gg[i] = snowCol[1] * 0.85; gb[i] = snowCol[2] * 0.9;
+          } else if (hash2(q + 7, r) < 0.01) {
+            gl[i] = "*";
+            gr[i] = crackCol[0]; gg[i] = crackCol[1]; gb[i] = crackCol[2];
+          }
+        }
+      }
+    }
+
+    // A tap on the ice: cracks spread out from the point in a star, then slowly heal over.
+    drawCracks(ripples) {
+      const { cols, rows, cw, ch } = this;
+      const col = mixc([255, 255, 255], [190, 210, 230], this.night);
+      for (const rp of ripples) {
+        const life = rp.age / rp.life;
+        if (life >= 1) continue;
+        const R = 70 * Math.min(1, rp.age / 0.35) * rp.strength;
+        const fade = 1 - smooth(0.6, 1, life);
+        const c0 = Math.max(0, Math.floor((rp.x - R) / cw)), c1 = Math.min(cols - 1, Math.floor((rp.x + R) / cw));
+        const r0 = Math.max(0, Math.floor((rp.y - R) / ch)), r1 = Math.min(rows - 1, Math.floor((rp.y + R) / ch));
+        for (let r = r0; r <= r1; r++) {
+          for (let q = c0; q <= c1; q++) {
+            const dx = (q + 0.5) * cw - rp.x, dy = (r + 0.5) * ch - rp.y;
+            const d = Math.hypot(dx, dy);
+            if (d > R) continue;
+            const i = r * cols + q;
+            if (d < cw * 1.2) { this.gl[i] = "*"; }
+            else {
+              const ang = Math.atan2(dy, dx);
+              let hitSpoke = false;
+              for (let k = 0; k < 6; k++) {
+                const len = R * (0.55 + 0.45 * hash2(k, rp.seed));
+                const a0 = rp.seed * 0.7 + k * (TAU / 6) + 0.25 * Math.sin(k * 3.1 + rp.seed) + 0.004 * d * Math.sin(k + rp.seed);
+                const off = Math.abs(angleTo(a0, ang)) * d;
+                if (d < len && off < cw * 0.55) { hitSpoke = true; break; }
+              }
+              if (!hitSpoke) continue;
+              this.gl[i] = lineGlyph(dx, dy);
+            }
+            this.gr[i] = mix(this.gr[i], col[0], fade); this.gg[i] = mix(this.gg[i], col[1], fade); this.gb[i] = mix(this.gb[i], col[2], fade);
+          }
+        }
+      }
+    }
+
+    // Snow drifting down over the ice.
+    snow(flakes) {
+      const { cols, rows, cw, ch } = this;
+      const col = mixc([255, 255, 255], [200, 214, 232], this.night);
+      for (const f of flakes) {
+        const q = Math.floor(f.x / cw), r = Math.floor(f.y / ch);
+        if (q < 0 || r < 0 || q >= cols || r >= rows) continue;
+        const i = r * cols + q;
+        this.gl[i] = f.big ? "*" : ".";
+        this.gr[i] = col[0]; this.gg[i] = col[1]; this.gb[i] = col[2];
+      }
+    }
+
     // A small, soft glow around a jelly's bell after dark, breathing with its pulse.
     halo(c) {
       const { cols, rows, cw, ch } = this;
@@ -826,14 +961,26 @@
       }
     }
 
-    frame(creatures, t, ripples) {
+    frame(creatures, t, ripples, flakes) {
+      const winter = this.season === "winter";
+      // Floating things belong to their season; nothing floats on the ice.
+      creatures = creatures.filter((c) => !c.sp.surface || (!winter && (!c.sp.season || c.sp.season === this.season)));
       this.shadow.fill(0);
       // Shadows on the sea floor for anything near the surface: the shallower, the further it falls.
-      for (const c of creatures) {
+      if (!winter) for (const c of creatures) {
         if (c.depth < 0.5) this.draw(c, 6 + (0.5 - c.depth) * 40);
       }
       this.water(t);
       const order = [...creatures].sort((a, b) => b.depth - a.depth);
+      if (winter) {
+        // Everything swims under a sheet of ice: draw it all, frost it over, then crack and snow on top.
+        for (const c of order) { if (this.night > 0.05 && c.sp.radial) this.halo(c); this.draw(c, 0); }
+        this.ice(t);
+        if (ripples) this.drawCracks(ripples);
+        if (flakes) this.snow(flakes);
+        this.present();
+        return;
+      }
       // Ripples sit on the surface: under the floating flowers, over everything that swims.
       let rippled = false;
       for (const c of order) {
@@ -862,11 +1009,12 @@
     seaNettle: { speed: 7, turn: 0.1, shy: 0 },
     blueJelly: { speed: 6, turn: 0.1, shy: 0 },
     lotus: { speed: 3, turn: 0.05, shy: 0 },
+    maple: { speed: 5, turn: 0.1, shy: 0 },
   };
   const NAMES = {
     whaleShark: "Whale shark", hammerhead: "Hammerhead", turtle: "Sea turtle", stingray: "Blue-spotted stingray",
     manta: "Manta ray", dolphin: "Bottlenose dolphin", sardine: "Golden trevally", moonJelly: "Moon jellyfish",
-    seaNettle: "Sea nettle", blueJelly: "Blue jellyfish", lotus: "Lotus",
+    seaNettle: "Sea nettle", blueJelly: "Blue jellyfish", lotus: "Lotus", maple: "Maple leaf",
   };
 
   function angleTo(a, b) {
@@ -886,6 +1034,9 @@
       this.t = 0;
       this.mode = "auto";
       this.night = 0;
+      this.season = "summer";
+      this.flakes = [];
+      this.rainT = 0;
       this.resize();
     }
 
@@ -953,6 +1104,7 @@
       // On the surface.
       this.spawn("lotus", 160, 0, { spin: Math.random() * TAU });
       if (!small) this.spawn("lotus", 110, 0, { spin: Math.random() * TAU });
+      for (let i = 0; i < (small ? 3 : 6); i++) this.spawn("maple", this.rand(40, 62), 0, { spin: Math.random() * TAU, tint: i % 4 });
     }
 
     resetSpine(c) {
@@ -1051,13 +1203,37 @@
         }
         if (c.sp.radial) { c.nodes[0] = c.x; c.nodes[1] = c.y; } else this.trail(c);
       }
+      this.weather(dt);
       for (const rp of this.ripples) rp.age += dt;
       this.ripples = this.ripples.filter((rp) => rp.age < rp.life);
     }
 
     ripple(x, y, strength) {
       if (this.ripples.length > 24) return;
-      this.ripples.push({ x, y, r0: 4, speed: 34, age: 0, life: 3.2, strength: strength || 1 });
+      // On ice a tap leaves cracks that take a while to heal, rather than a ring that spreads.
+      const winter = this.season === "winter";
+      this.ripples.push({ x, y, r0: 4, speed: 34, age: 0, life: winter ? 6 : 3.2, strength: strength || 1, seed: Math.random() * 10 });
+    }
+
+    // Seasonal weather: snow in winter, and in spring a shower of rain every so often, like Koi Valley.
+    weather(dt) {
+      const { w, h } = this;
+      if (this.season === "winter") {
+        const want = Math.round(clamp(w * h / 9000, 30, 140));
+        while (this.flakes.length < want) this.flakes.push({ x: Math.random() * w, y: Math.random() * h, vx: this.rand(-6, 6), vy: this.rand(10, 22), big: Math.random() < 0.3, ph: Math.random() * TAU });
+        for (const f of this.flakes) {
+          f.ph += dt;
+          f.x += (f.vx + 8 * Math.sin(f.ph * 0.7)) * dt;
+          f.y += f.vy * dt;
+          if (f.y > h + 10) { f.y = -10; f.x = Math.random() * w; }
+          if (f.x < -10) f.x = w + 10; else if (f.x > w + 10) f.x = -10;
+        }
+      } else this.flakes.length = 0;
+      if (this.season === "spring") {
+        this.rainT += dt;
+        const c = this.rainT % 60;
+        if (c > 40 && c < 52 && Math.random() < dt * 9) this.ripple(Math.random() * w, Math.random() * h, 0.45);
+      }
     }
 
     // What sits under a point, nearest the surface first.
@@ -1065,6 +1241,7 @@
       let best = null, bd = Infinity;
       for (const c of this.creatures) {
         if (c.kind === "sardine") continue;
+        if (c.sp.surface && (this.season === "winter" || (c.sp.season && c.sp.season !== this.season))) continue;
         const n = c.nodes;
         const span = c.sp.radial ? 0 : NODES - 1;
         for (let i = 0; i <= span; i += 2) {
@@ -1089,8 +1266,16 @@
 
     render() {
       this.renderer.night = this.night;
-      this.renderer.frame(this.creatures, this.t, this.ripples);
+      this.renderer.season = this.season;
+      this.renderer.frame(this.creatures, this.t, this.ripples, this.flakes);
     }
+  }
+
+  // Seasons follow the visitor's date the same way Koi Valley does (southern-hemisphere time zones are flipped).
+  function seasonFromDate(d) {
+    let m = d.getMonth();
+    try { if (/^(Australia|Pacific\/Auckland|America\/(Argentina|Santiago|Sao_Paulo|Montevideo)|Africa\/Johannesburg)/.test(Intl.DateTimeFormat().resolvedOptions().timeZone)) m = (m + 6) % 12; } catch (e) {}
+    return ["winter", "winter", "spring", "spring", "spring", "summer", "summer", "summer", "autumn", "autumn", "autumn", "winter"][m];
   }
 
   // Night from the hour of the day: full day 07:00 to 17:00, dusk to 20:00, night until 05:00, dawn to 07:00.
@@ -1115,8 +1300,26 @@
     let mode = "auto";
     try { mode = localStorage.getItem("aq-mode") || "auto"; } catch (e) {}
     if (!MODES.includes(mode)) mode = "auto";
-    // A scrubbed hour overrides the clock until Auto is pressed again.
-    let scrub = null;
+    // A scrubbed hour overrides the clock until Auto is pressed again. Koi Valley passes its season,
+    // and its hour when someone was scrubbing the day there, so The Pond opens looking the same.
+    const params = new URLSearchParams(location.search);
+    const hourParam = parseFloat(params.get("hour"));
+    let scrub = hourParam >= 0 && hourParam < 24 ? hourParam : null;
+    if (scrub !== null) mode = "auto";
+    const SEASONS = ["spring", "summer", "autumn", "winter"];
+    tank.season = SEASONS.includes(params.get("season")) ? params.get("season") : seasonFromDate(new Date());
+    const seasonChips = [...document.querySelectorAll("[data-season]")];
+    function syncSeason() {
+      for (const b of seasonChips) b.setAttribute("aria-pressed", b.dataset.season === tank.season ? "true" : "false");
+      document.documentElement.dataset.season = tank.season;
+    }
+    syncSeason();
+    for (const b of seasonChips) b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      tank.season = b.dataset.season;
+      tank.ripples.length = 0;
+      syncSeason();
+    });
     const nowHour = () => { const d = new Date(); return d.getHours() + d.getMinutes() / 60; };
     const hour = () => (scrub !== null ? scrub : nowHour());
     const targetNight = () => (mode === "day" ? 0 : mode === "night" ? 1 : nightFromHour(hour()));

@@ -1092,18 +1092,32 @@ const MINI_RIM = miniRing(MINI.r, 0.7), MINI_WATER = miniRing(MINI.r * 0.8, 0.7)
 // rounded stones around the edge, drawn back to front so the near ones sit over the water
 const MINI_STONES = miniRing(MINI.r * 0.9, 0.7).filter((_, k) => k % 2 === 0).map(([x, y], k) => ({ x, y, s: 0.045 + hash(k, 41) * 0.025, z: 0.035 + hash(k, 42) * 0.03, a: hash(k, 43) * 3 }));
 function drawMiniPond(t) {
-  poly(MINI_RIM.map(([x, y]) => P(x, y, MINI.h)), rgb(lit([150, 146, 136])));
-  poly(MINI_WATER.map(([x, y]) => P(x, y, MINI.h + 0.01)), rgb(lit([64, 128, 150])));
-  // a lily pad and one small fish circling slowly
-  const pad = Array.from({ length: 10 }, (_, k) => { const a = 0.4 + k / 10 * 5.6; return P(MINI.x - 0.12 + Math.cos(a) * 0.08, MINI.y + 0.05 + Math.sin(a) * 0.07, MINI.h + 0.02); });
-  poly(pad, rgb(lit([86, 140, 70])));
-  const a = t * 0.0005, fx = MINI.x + Math.cos(a) * 0.17, fy = MINI.y + Math.sin(a) * 0.13;
+  const ice = SEASON === "winter";
+  poly(MINI_RIM.map(([x, y]) => P(x, y, MINI.h)), rgb(lit(ice ? [176, 182, 190] : [150, 146, 136])));
+  // frozen over in winter, like the koi pond
+  poly(MINI_WATER.map(([x, y]) => P(x, y, MINI.h + 0.01)), rgb(lit(ice ? [160, 196, 218] : [64, 128, 150])));
+  if (!ice) {
+    const pad = Array.from({ length: 10 }, (_, k) => { const a = 0.4 + k / 10 * 5.6; return P(MINI.x - 0.12 + Math.cos(a) * 0.08, MINI.y + 0.05 + Math.sin(a) * 0.07, MINI.h + 0.02); });
+    poly(pad, rgb(lit(SEASON === "autumn" ? [150, 132, 60] : [86, 140, 70])));
+  }
+  // one small fish circling slowly, a faint shape under the ice in winter
+  const a = t * (ice ? 0.0002 : 0.0005), fx = MINI.x + Math.cos(a) * 0.17, fy = MINI.y + Math.sin(a) * 0.13;
   const f0 = P(fx, fy, MINI.h + 0.015), f1 = P(fx - Math.sin(a) * -0.07, fy + Math.cos(a) * 0.055, MINI.h + 0.015);
+  ctx.globalAlpha = ice ? 0.35 : 1;
   ctx.strokeStyle = rgb(lit([236, 120, 52])); ctx.lineWidth = Math.max(1.5, TW * cam.zoom * 0.035); ctx.lineCap = "round";
   ctx.beginPath(); ctx.moveTo(f0[0], f0[1]); ctx.lineTo(f1[0], f1[1]); ctx.stroke();
-  for (const st of [...MINI_STONES].sort((p, q) => depthKey(p.x, p.y, MINI.h) - depthKey(q.x, q.y, MINI.h)))
+  ctx.globalAlpha = 1;
+  if (ice) { // a couple of hairline cracks in the ice
+    ctx.strokeStyle = rgba(lit([250, 252, 255]), 0.8); ctx.lineWidth = Math.max(0.8, TW * cam.zoom * 0.008);
+    for (const [u0, v0, u1, v1] of [[-0.2, -0.05, 0.05, 0.1], [0.05, 0.1, 0.18, 0.02], [0.05, 0.1, 0.0, 0.22]]) { const A = P(MINI.x + u0, MINI.y + v0, MINI.h + 0.012), B = P(MINI.x + u1, MINI.y + v1, MINI.h + 0.012); ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke(); }
+  }
+  for (const st of [...MINI_STONES].sort((p, q) => depthKey(p.x, p.y, MINI.h) - depthKey(q.x, q.y, MINI.h))) {
     rbox(st.x, st.y, Math.cos(st.a), Math.sin(st.a), MINI.h, -st.s, st.s, -st.s * 0.8, st.s * 0.8, 0, st.z, [148, 144, 134]);
+    if (ice) rbox(st.x, st.y, Math.cos(st.a), Math.sin(st.a), MINI.h, -st.s * 0.8, st.s * 0.8, -st.s * 0.65, st.s * 0.65, st.z, st.z + 0.012, [240, 243, 248]);
+  }
 }
+// The Pond opens in the same season, and at the same hour if the day is being scrubbed
+function goPond() { location.href = "/pond?season=" + SEASON + (live ? "" : "&hour=" + hourNow.toFixed(2)); }
 function miniAt(x, y) { const c = P(MINI.x, MINI.y, MINI.h); return Math.hypot(c[0] - x, c[1] - y) < TW * cam.zoom * 0.45 && !occluded(MINI.x, MINI.y, MINI.h + 0.2); }
 function caveAt(x, y) { return CAVE.sx && Math.hypot(CAVE.sx - x, CAVE.sy - y) < TW * 0.5 && !occluded(...CW([0, 0, 0.6])); }
 function visitCave() {
@@ -1856,7 +1870,7 @@ const TAGS = [...MARKS.map(m => ({ key: m.key, label: m.label, m })), { key: "pr
 for (const t of TAGS) {
   const b = document.createElement("button"); b.className = "tag-btn"; b.textContent = t.label; b.type = "button";
   // The Pond is its own page with its own root layout, so a full page load
-  b.addEventListener("click", e => { e.stopPropagation(); if (t.mini) location.href = "/pond"; else openPlace(t.key); });
+  b.addEventListener("click", e => { e.stopPropagation(); if (t.mini) goPond(); else openPlace(t.key); });
   t.el = b; tagsEl.appendChild(b);
 }
 function occluded(x, y, h) {
@@ -1995,7 +2009,7 @@ function planeAt(x, y) {
 function tap(x, y) {
   if (planeAt(x, y)) return launchPlane();
   if (caveAt(x, y)) return visitCave();
-  if (miniAt(x, y)) { location.href = "/pond"; return; }
+  if (miniAt(x, y)) return goPond();
   for (const fx of foxes) if (fx.sx && Math.hypot(fx.sx - x, fx.sy - y) < TW * 0.6) { fx.hop = 1; fx.scared = 1.6; foxTarget(fx, true); return; }
   const f = koiAt(x, y); if (f) return openProject(f.p.id);
   const m = markAt(x, y); if (m) return openPlace(m.key);
