@@ -115,6 +115,7 @@ body.drawer-open .ident { opacity: 0; pointer-events: none; }
   transform: translateX(-50%) rotate(45deg);
 }
 .tag-btn.far { opacity: 0; pointer-events: none; }
+.tag-btn.stacked::after { display: none; } /* sits on top of Projects, so it needs no pointer */
 .tag-btn:hover, .tag-btn.hot { transform: translate(-50%, calc(-100% - 3px)); background: var(--paper); color: var(--maple); }
 
 .toast {
