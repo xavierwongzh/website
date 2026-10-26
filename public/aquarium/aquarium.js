@@ -375,6 +375,7 @@
   }
   const MOON_INK = { bell: [196, 168, 232], mark: [240, 170, 220], arm: [214, 190, 240], tent: [180, 160, 220] };
   const NETTLE_INK = { bell: [238, 160, 84], mark: [250, 200, 130], arm: [244, 226, 196], tent: [210, 84, 70] };
+  const BLUE_INK = { bell: [70, 104, 255], mark: [200, 226, 255], arm: [120, 150, 255], tent: [96, 120, 250] };
 
   function pulse(ph) {
     // Quick contraction, slow relax.
@@ -398,8 +399,17 @@
     },
   };
 
-  /* Sardine: a small silver fish with a forked tail, for schools. */
-  const SARDINE = { back: [70, 118, 160], flank: [214, 228, 240], line: [120, 160, 200] };
+  /* Blue jellyfish: the moon jelly's build in deep cornflower blue, with more tentacles. */
+  const blueJelly = {
+    radial: true,
+    reach: 1.4,
+    shape(c) {
+      return jelly(c, BLUE_INK, 4, 14, 0.7, 1.3);
+    },
+  };
+
+  /* Golden trevally: a small gold fish with a forked tail, for schools. */
+  const SARDINE = { back: [206, 150, 34], flank: [252, 222, 120], line: [230, 186, 70] };
   const sardine = {
     len: 1,
     reach: 0.14,
@@ -455,27 +465,52 @@
     },
   };
 
-  /* Cherry blossom: five notched petals floating on the surface. */
-  const SAKURA = { petal: [248, 200, 214], deep: [232, 150, 176], heart: [246, 220, 120] };
-  const sakura = {
-    radial: true,
-    surface: true,
-    reach: 0.55,
+  /* Bottlenose dolphin: beak, rounded melon, swept pectorals, dark cape over the back and
+     wide horizontal flukes that dip as it swims (seen from above they shorten on each beat). */
+  const DOLPHIN = { cape: [74, 88, 104], flank: [128, 144, 158], pale: [176, 188, 198], eye: [16, 20, 26] };
+  function dolphinW(s) {
+    if (s < 0.07) return 0.018 + 0.14 * s;
+    if (s < 0.12) return 0.028 + 0.05 * smooth(0.07, 0.12, s);
+    if (s < 0.32) return 0.078 + 0.024 * smooth(0.12, 0.32, s);
+    return 0.02 + 0.082 * (1 - smooth(0.32, 0.86, s));
+  }
+  const dolphin = {
+    len: 1,
+    reach: 0.2,
     shape(c) {
-      const { hx, hy } = F;
-      const r = Math.hypot(hx, hy);
-      const ang = Math.atan2(hy, hx) - c.spin;
-      if (r < 0.1) return put(SAKURA.heart, 1, 1, r < 0.05 ? "*" : ".");
-      const sec = fract(ang / TAU * 5) - 0.5;
-      const notch = 0.5 - 0.06 * Math.exp(-((sec * 14) ** 2));
-      const R = notch * (1 - 1.1 * sec * sec);
-      if (r > R) return false;
-      const col = mixc(SAKURA.deep, SAKURA.petal, smooth(0.08, 0.3, r));
-      return put(col, lit(hx * 0.4, hy * 0.4), 1, Math.abs(sec) > 0.42 ? lineGlyph(hx, hy) : "");
+      const { s, a, px, py } = F;
+      const sa = Math.abs(a);
+      const beat = Math.cos(c.phase);
+      // Pectoral fins, swept back from just behind the head.
+      const pec = [0.24, 0.07, 0.31, 0.08, 0.4, 0.19, 0.36, 0.2];
+      if (inPoly(pec, s, sa)) return put(DOLPHIN.cape, 0.8, 1, lineGlyph(...dirOnScreen(s - 0.24, sa - 0.07, a)));
+      if (s < 0 || s > 1.04) return false;
+      // Flukes: a wide crescent, notched in the middle.
+      if (s > 0.84) {
+        const k = 0.8 + 0.2 * beat;
+        const t = (s - 0.84) / (0.2 * k);
+        if (t > 1) return false;
+        const span = 0.02 + 0.15 * Math.sin(Math.min(1, t * 1.3) * Math.PI * 0.5);
+        const back = 1 - 0.55 * (sa / 0.17) ** 2;
+        if (sa < span && t < back && !(sa < 0.012 && t > 0.75))
+          return put(DOLPHIN.cape, 0.72 + 0.2 * beat, 1, t > back - 0.25 ? lineGlyph(...dirOnScreen(0.4, 1, a)) : "");
+        return false;
+      }
+      const w = dolphinW(s);
+      if (sa > w) return false;
+      const across = a / w;
+      const l = bodyLight(across, px, py, 0.9);
+      if (s > 0.09 && s < 0.12 && Math.abs(Math.abs(across) - 0.78) < 0.18) return put(DOLPHIN.eye, 1, 1, "o");
+      if (s > 0.15 && s < 0.17 && Math.abs(across) < 0.2) return put(DOLPHIN.eye, 0.7, 1, "o");
+      // Dorsal fin seen from above: a dark blade down the spine.
+      if (s > 0.42 && s < 0.56 && Math.abs(across) < 0.14) return put(DOLPHIN.cape, 0.5, 1, lineGlyph(F.tx, F.ty));
+      const cape = 0.45 + 0.15 * Math.sin(s * 6);
+      const col = s < 0.07 ? DOLPHIN.flank : Math.abs(across) < cape ? DOLPHIN.cape : mixc(DOLPHIN.flank, DOLPHIN.pale, smooth(cape, 1, Math.abs(across)));
+      return put(col, l, 1);
     },
   };
 
-  const SPECIES = { hammerhead, whaleShark, turtle, stingray, manta, moonJelly, seaNettle, sardine, lotus, sakura };
+  const SPECIES = { hammerhead, whaleShark, turtle, stingray, manta, dolphin, moonJelly, seaNettle, blueJelly, sardine, lotus };
 
   /* ── creature state ───────────────────────────────────────────────── */
 
@@ -788,16 +823,17 @@
     turtle: { speed: 22, turn: 0.2, shy: 0.4 },
     stingray: { speed: 26, turn: 0.25, shy: 0.6 },
     manta: { speed: 28, turn: 0.18, shy: 0.2 },
+    dolphin: { speed: 58, turn: 0.55, shy: 0.3 },
     sardine: { speed: 46, turn: 2.2, shy: 1.6 },
     moonJelly: { speed: 6, turn: 0.1, shy: 0 },
     seaNettle: { speed: 7, turn: 0.1, shy: 0 },
+    blueJelly: { speed: 6, turn: 0.1, shy: 0 },
     lotus: { speed: 3, turn: 0.05, shy: 0 },
-    sakura: { speed: 5, turn: 0.1, shy: 0 },
   };
   const NAMES = {
     whaleShark: "Whale shark", hammerhead: "Hammerhead", turtle: "Sea turtle", stingray: "Blue-spotted stingray",
-    manta: "Manta ray", sardine: "Sardine", moonJelly: "Moon jellyfish", seaNettle: "Sea nettle",
-    lotus: "Lotus", sakura: "Cherry blossom",
+    manta: "Manta ray", dolphin: "Bottlenose dolphin", sardine: "Golden trevally", moonJelly: "Moon jellyfish",
+    seaNettle: "Sea nettle", blueJelly: "Blue jellyfish", lotus: "Lotus",
   };
 
   function angleTo(a, b) {
@@ -864,6 +900,15 @@
       this.spawn("moonJelly", 110, 0.3, { spin: Math.random() * TAU });
       if (!small) this.spawn("moonJelly", 90, 0.44, { spin: Math.random() * TAU });
       this.spawn("seaNettle", 110, 0.26);
+      this.spawn("blueJelly", 120, 0.18, { spin: Math.random() * TAU });
+      if (!small) this.spawn("blueJelly", 85, 0.36, { spin: Math.random() * TAU });
+      // A pod of dolphins travelling together, near the surface.
+      {
+        const cx = this.rand(0.25, 0.75) * this.w, cy = this.rand(0.3, 0.7) * this.h, hd = this.rand(0, TAU);
+        for (let i = 0; i < (small ? 2 : 3); i++) {
+          this.spawn("dolphin", 230 - i * 25, 0.1 + 0.06 * i, { x: cx + this.rand(-120, 120), y: cy + this.rand(-80, 80), heading: hd, school: 5, bend: 0.2 });
+        }
+      }
       // Schools of bait fish.
       for (let s = 0; s < (small ? 1 : 2); s++) {
         const cx = this.rand(0.2, 0.8) * this.w, cy = this.rand(0.25, 0.75) * this.h, hd = this.rand(0, TAU);
@@ -875,7 +920,6 @@
       // On the surface.
       this.spawn("lotus", 160, 0, { spin: Math.random() * TAU });
       if (!small) this.spawn("lotus", 110, 0, { spin: Math.random() * TAU });
-      for (let i = 0; i < (small ? 3 : 5); i++) this.spawn("sakura", this.rand(34, 56), 0, { spin: Math.random() * TAU });
     }
 
     resetSpine(c) {
