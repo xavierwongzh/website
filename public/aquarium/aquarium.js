@@ -1108,24 +1108,33 @@
     const tank = new Tank(canvas);
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     const caption = document.getElementById("aq-caption");
-    const modeBtn = document.getElementById("aq-mode");
+    const chips = [...document.querySelectorAll("[data-mode]")];
+    const timeEl = document.getElementById("aq-time");
+    const phaseEl = document.getElementById("aq-phase");
     const MODES = ["auto", "day", "night"];
-    const LABEL = { auto: "Auto", day: "Day", night: "Night" };
     let mode = "auto";
     try { mode = localStorage.getItem("aq-mode") || "auto"; } catch (e) {}
     if (!MODES.includes(mode)) mode = "auto";
     const targetNight = () => (mode === "day" ? 0 : mode === "night" ? 1 : nightFromClock(new Date()));
     tank.night = targetNight();
+    // The panel reads like Koi Valley's clock: the time, then what the light is doing.
+    function phaseName() {
+      if (mode !== "auto") return mode === "day" ? "Day" : "Night";
+      const h = new Date().getHours();
+      return h >= 5 && h < 7 ? "Dawn" : h >= 7 && h < 17 ? "Day" : h >= 17 && h < 20 ? "Dusk" : "Night";
+    }
     function syncMode() {
-      if (!modeBtn) return;
-      modeBtn.textContent = LABEL[mode];
-      modeBtn.setAttribute("aria-label", "Lighting: " + LABEL[mode] + ". Tap to change.");
+      for (const b of chips) b.setAttribute("aria-pressed", b.dataset.mode === mode ? "true" : "false");
+      const d = new Date();
+      if (timeEl) timeEl.textContent = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+      if (phaseEl) phaseEl.textContent = phaseName();
       document.documentElement.dataset.night = targetNight() > 0.5 ? "1" : "0";
     }
     syncMode();
-    if (modeBtn) modeBtn.addEventListener("click", (e) => {
+    setInterval(syncMode, 15000);
+    for (const b of chips) b.addEventListener("click", (e) => {
       e.stopPropagation();
-      mode = MODES[(MODES.indexOf(mode) + 1) % MODES.length];
+      mode = b.dataset.mode;
       try { localStorage.setItem("aq-mode", mode); } catch (err) {}
       syncMode();
     });

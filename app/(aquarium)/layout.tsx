@@ -6,7 +6,7 @@ import "./aquarium.css";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: "Aquarium | Xavier Wong",
-  description: "An ASCII aquarium: hammerheads, a whale shark, a sea turtle, rays, jellyfish and floating flowers, drawn in characters.",
+  description: "An ASCII aquarium: hammerheads, a whale shark, dolphins, a sea turtle, rays, jellyfish and lotus pads, drawn in characters.",
   openGraph: { images: [{ url: "/og.png", width: 1200, height: 630 }] },
 };
 
@@ -31,7 +31,7 @@ export default function AquariumLayout({
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
         />
       </head>
       <body suppressHydrationWarning>

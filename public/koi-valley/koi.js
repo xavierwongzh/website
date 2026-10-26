@@ -1831,10 +1831,11 @@ function renderScene(t) {
 
 // ---------- tags (HTML buttons over the scene) ----------
 const tagsEl = document.getElementById("tags");
-const TAGS = [...MARKS.map(m => ({ key: m.key, label: m.label, m })), { key: "projects", label: "Projects", pond: true }];
+const TAGS = [...MARKS.map(m => ({ key: m.key, label: m.label, m })), { key: "projects", label: "Projects", pond: true }, { key: "aquarium", label: "Aquarium", dock: true }];
 for (const t of TAGS) {
   const b = document.createElement("button"); b.className = "tag-btn"; b.textContent = t.label; b.type = "button";
-  b.addEventListener("click", e => { e.stopPropagation(); openPlace(t.key); });
+  // the dock leads off the island to the aquarium page (its own root layout, so a full page load)
+  b.addEventListener("click", e => { e.stopPropagation(); if (t.dock) location.href = "/aquarium"; else openPlace(t.key); });
   t.el = b; tagsEl.appendChild(b);
 }
 function occluded(x, y, h) {
@@ -1851,6 +1852,10 @@ function placeTags() {
     if (t.pond) {
       [x, y] = P(LAKE.cx, LAKE.cy, WATER_H + 1.1);
       hidden = occluded(LAKE.cx, LAKE.cy, WATER_H + 0.2);
+    } else if (t.dock) {
+      const ex = DOCK.x + DOCK.ax * 1.15, ey = DOCK.y + DOCK.ay * 1.15;
+      [x, y] = P(ex, ey, WATER_H + 0.8);
+      hidden = occluded(ex, ey, WATER_H + 0.2);
     } else if (t.m.topW) {
       [x, y] = P(...t.m.topW);
       hidden = occluded(t.m.i + 0.5, t.m.j + 0.5, t.m.h + 1.1);
