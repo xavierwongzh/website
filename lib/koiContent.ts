@@ -4,7 +4,7 @@ import vm from "node:vm";
 
 type Project = {
   id: string; title: string; sub: string; when: string; role: string; text: string; detail?: string;
-  features?: string[]; outcomes?: string[]; tags: string[]; links?: [string, string][]; video?: string;
+  features?: string[]; outcomes?: string[]; tags: string[]; links?: [string, string][]; video?: string; poster?: string;
 };
 type Place = { eyebrow: string; title: string; html: () => string };
 

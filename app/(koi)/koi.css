@@ -178,8 +178,10 @@ body.drawer-open .ident { opacity: 0; pointer-events: none; }
 .ticks li { line-height: 1.55; font-size: 14px; color: var(--ink-soft); }
 .drawer .lede { font-family: var(--display); font-size: 18px; font-style: italic; }
 .drawer .banner { display: block; width: 100%; height: auto; border-radius: 10px; margin: 2px 0 14px; background: rgba(127,127,127,.12); }
+/* the box holds the 16:9 space (a bare button collapsed in the card's grid), first for the thumbnail, then the player */
+.drawer .vbox { aspect-ratio: 16 / 9; }
 .drawer .video {
-  display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 10px; margin: 4px 0 14px; padding: 0;
+  display: block; width: 100%; height: 100%; border: 0; border-radius: 10px; margin: 0; padding: 0;
   background: #1d1a17 center / cover no-repeat; cursor: pointer; position: relative; overflow: hidden;
 }
 button.video::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 55%, rgba(0,0,0,.35)); }
@@ -192,6 +194,16 @@ button.video::after { content: ""; position: absolute; inset: 0; background: lin
   border-style: solid; border-width: 9px 0 9px 15px; border-color: transparent transparent transparent #fff;
 }
 button.video:hover .play, button.video:focus-visible .play { background: var(--maple); }
+.drawer .poster {
+  display: flex; gap: 14px; align-items: center; padding: 10px; border: 1px solid var(--line); border-radius: 10px;
+  color: var(--ink); text-decoration: none;
+}
+.drawer .poster:hover { border-color: var(--maple); }
+.drawer .poster img { width: 76px; height: auto; border-radius: 4px; flex: none; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+.drawer .poster > span { display: grid; gap: 4px; }
+.drawer .poster strong { font-family: var(--display); font-size: 16px; }
+.drawer .poster > span > span { font-size: 13px; color: var(--ink-soft); line-height: 1.45; }
+.drawer .poster em { font-style: normal; font-size: 13px; color: var(--maple); }
 .drawer .links { display: flex; flex-wrap: wrap; gap: 14px; }
 .copyrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .copyrow code { font-family: var(--mono); font-size: 13px; user-select: all; background: var(--line); padding: 4px 8px; border-radius: 6px; word-break: break-all; }

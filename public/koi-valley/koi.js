@@ -35,11 +35,12 @@ const PROJECTS = [
   { id: "duby", title: "DUBY (Duty Buddy)", sub: "Optimization-driven nurse rostering", when: "Sep 2025 – Apr 2026", role: "Capstone · St Andrew's Community Hospital",
     text: "Nurse rostering at the ward took nurse managers more than three hours every cycle. DUBY generates compliant, fair 14-day rosters for Registered Nurses, Enrolled Nurses and Healthcare Assistants in minutes.",
     detail: "The core engine is a mixed-integer linear program in Python (Pyomo) that allocates shifts while respecting coverage, rest rules, leave requests and fairness for weekend and night shifts. CP-SAT acts as a fallback solver, so the system always produces a usable roster even when the main model cannot.",
-    features: ["Coverage, labour-rule and rest-rule constraints for multi-role wards", "Fairness controls for weekends and night shifts", "Leave requests built into the model", "CP-SAT fallback that guarantees a usable roster"],
-    outcomes: ["Piloted at Ward 6, St Andrew's Community Hospital", "Rostering time cut from over 3 hours to under 15 minutes per cycle (91.7% less)", "Commended by both nurse managers"],
+    features: ["Coverage, labour-rule and rest-rule constraints for multi-role wards, with MOH guidelines written as model constraints", "Fairness controls for weekends and night shifts", "Leave requests built into the model", "CP-SAT fallback that guarantees a usable roster",
+      "Colour-coded roster view where managers can reassign shifts in a few clicks", "Staffing overview that flags understaffed and overstaffed shifts", "Request portal where staff submit leave and shift preferences and see approvals right away"],
+    outcomes: ["Piloted at Ward 6, St Andrew's Community Hospital", "Rostering time cut from over 3 hours to under 15 minutes per cycle (91.7% less)", "Every generated roster complies with the ward's staffing rules", "Commended by both nurse managers", "Presented at INSPIRE CON 2026 by a team of seven"],
     tags: ["Python", "Pyomo", "MILP", "CP-SAT", "Workforce Scheduling"],
-    video: "Nj80QaTULgM",
-    links: [["Video", "https://youtu.be/Nj80QaTULgM"]],
+    video: "Nj80QaTULgM", poster: "duby",
+    links: [["Video", "https://youtu.be/Nj80QaTULgM"], ["Poster (PDF)", "/koi-valley/posters/duby-poster.pdf"]],
     koi: ["#f08a24","#f39a2e","#f39a2e","#f6a83a","#f6a83a","#f39a2e","#f08a24","#f08a24"] },
   { id: "runway", title: "San Diego Airport Simulation", sub: "Runway and surface operations at KSAN", when: "Sep – Dec 2025", role: "Airport Systems Modelling and Simulation",
     text: "A discrete-event study of one of the world's busiest single-runway airports, testing which operational changes actually move throughput.",
@@ -192,8 +193,11 @@ function openProject(id) {
     <p class="lede">${esc(p.sub)}</p>
     <p>${esc(p.text)}</p>
     ${p.detail ? `<p class="muted">${esc(p.detail)}</p>` : ""}
-    ${p.video ? `<button class="video" data-video="${p.video}" aria-label="Play the ${esc(p.title)} video"
-      style="background-image:url('https://i.ytimg.com/vi/${p.video}/hqdefault.jpg')"><span class="play"></span></button>` : ""}
+    ${p.video ? `<div class="vbox"><button class="video" data-video="${p.video}" aria-label="Play the ${esc(p.title)} video"
+      style="background-image:url('https://i.ytimg.com/vi/${p.video}/hqdefault.jpg')"><span class="play"></span></button></div>` : ""}
+    ${p.poster ? `<a class="poster" href="/koi-valley/posters/${p.poster}-poster.pdf" target="_blank" rel="noopener">
+      <img src="/koi-valley/posters/${p.poster}.jpg" alt="${esc(p.title)} poster" width="600" height="850" loading="lazy">
+      <span><strong>Project poster</strong><span>The whole project on one page: the problem, how DUBY works and the results.</span><em>Open the PDF ↗</em></span></a>` : ""}
     ${p.features ? `<div class="entry"><h3>What it does</h3>${list(p.features)}</div>` : ""}
     ${p.outcomes ? `<div class="entry"><h3>Outcomes</h3>${list(p.outcomes)}</div>` : ""}
     <div class="pills">${p.tags.map(t => `<span>${esc(t)}</span>`).join("")}</div>
