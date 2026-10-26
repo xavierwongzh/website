@@ -5,6 +5,10 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [],
   },
+  // The ASCII tank started life as /aquarium before it was renamed The Pond.
+  async redirects() {
+    return [{ source: "/aquarium", destination: "/pond", permanent: true }];
+  },
 };
 
 export default nextConfig;
