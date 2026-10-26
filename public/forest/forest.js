@@ -425,15 +425,24 @@
       const air = s.kind === "rabbit" ? ((((s.ph / TAU) % 1) + 1) % 1 > 0.15 && (((s.ph / TAU) % 1) + 1) % 1 < 0.7 ? 2.4 : 0) : 1;
       s.x += s.dir * s.speed * u * dt * 2.2 * air;
       s.ph += dt * (s.kind === "rabbit" ? 4.2 : 2.4);
-      if (s.x < W * 0.06 && s.dir < 0) s.dir = 1;
-      if (s.x > W * 0.94 && s.dir > 0) s.dir = -1;
+      if (W < 700) {
+        // On a narrow phone screen the spirits wander off the edge and come back a while later.
+        if ((s.x < -u * 1.2 && s.dir < 0) || (s.x > W + u * 1.2 && s.dir > 0)) { s.state = "away"; s.timer = 5 + Math.random() * 9; }
+      } else {
+        if (s.x < W * 0.06 && s.dir < 0) s.dir = 1;
+        if (s.x > W * 0.94 && s.dir > 0) s.dir = -1;
+      }
       // Spirits on the same ground give each other room instead of walking through one another.
       for (const o of spirits) {
-        if (o === s || o.layer !== s.layer || o.perch !== null) continue;
+        if (o === s || o.layer !== s.layer || o.perch !== null || o.state === "away") continue;
         const gap = (o.x - s.x) * s.dir;
         if (gap > 0 && gap < (u + unitOf(o)) * 0.75) { s.dir *= -1; break; }
       }
       if (s.timer < 0) { s.state = "rest"; s.timer = 3 + Math.random() * 5; s.grazes = s.kind !== "rabbit" && Math.random() < 0.6; }
+    } else if (s.state === "away") {
+      // Back in from either side, walking toward the middle.
+      if (s.timer < 0) { s.dir = Math.random() < 0.5 ? 1 : -1; s.x = s.dir > 0 ? -u * 1.1 : W + u * 1.1; s.state = "walk"; s.timer = 8 + Math.random() * 10; }
+      return;
     } else {
       // A rabbit finishes the hop it is in and sits until it moves on.
       if (s.kind === "rabbit" && ((((s.ph / TAU) % 1) + 1) % 1) < 0.85) s.ph += dt * 4.2;
@@ -679,7 +688,7 @@
       }
       drawFlowers(i, t);
       for (const s of spirits) {
-        if (s.layer !== i) continue;
+        if (s.layer !== i || s.state === "away") continue;
         const sh = shapeOf(s);
         if (s.tree) drawPerch(s, sh);
         drawSpiritParticles(s, sh, t, dt);
@@ -893,6 +902,7 @@
     pointer.x = e.clientX; pointer.y = e.clientY; pointer.active = true;
     let hitSpirit = null;
     for (const s of spirits) {
+      if (s.state === "away") continue;
       const sh = shapeOf(s);
       for (const q of sh.parts) if (Math.hypot((q.ax + q.bx) / 2 - e.clientX, (q.ay + q.by) / 2 - e.clientY) < q.ra + sh.u * 0.08) hitSpirit = s;
     }
