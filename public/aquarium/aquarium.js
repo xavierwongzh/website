@@ -1,4 +1,4 @@
-/* ASCII aquarium: sea creatures seen from above, drawn as shaded character tiles. */
+/* ASCII aquarium: a tank seen through the glass, drawn as shaded character tiles. */
 (function (global) {
   "use strict";
 
@@ -17,13 +17,10 @@
   }
   const mixc = (a, b, t) => [mix(a[0], b[0], t), mix(a[1], b[1], t), mix(a[2], b[2], t)];
 
-  // Light from the upper left, above the water.
-  const LX = -0.42, LY = -0.5, LZ = 0.76;
-
   /* ── hit record ───────────────────────────────────────────────────── */
 
-  // A sample writes the lit colour, its coverage, how bright it is (picks the glyph)
-  // and optionally a fixed glyph (fin rays, spots, outlines).
+  // A sample writes the lit colour, its coverage, how bright it is (picks the glyph),
+  // optionally a fixed glyph, and for glyph-drawn creatures the glyph's own colour.
   const hit = { r: 0, g: 0, b: 0, a: 1, l: 1, ch: "", glow: 0, ink: null };
   function put(col, l, a, ch, glow) {
     hit.r = col[0] * l;
@@ -36,13 +33,18 @@
     hit.ink = null;
     return true;
   }
-  // Shade a rounded surface whose normal in screen space is (nx, ny).
+
+  // Light comes down through the surface, a little from the left. The local x axis is
+  // flipped for creatures facing left, so `FACE` turns a local normal back into screen space.
+  let FACE = 1;
   function lit(nx, ny) {
+    const sx = nx * FACE;
     const nz = Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
-    return 0.34 + 0.66 * clamp(nx * LX + ny * LY + nz * LZ, 0, 1);
+    return 0.36 + 0.64 * clamp(sx * -0.3 + ny * -0.72 + nz * 0.62, 0, 1);
   }
-  // A line glyph that follows a direction on screen.
+  // A line glyph that follows a local direction, turned to screen space.
   function lineGlyph(dx, dy) {
+    dx *= FACE;
     const d = Math.hypot(dx, dy) || 1;
     if (Math.abs(dy) < 0.38 * d) return "-";
     if (Math.abs(dx) < 0.38 * d) return "|";
@@ -56,270 +58,247 @@
     }
     return inside;
   }
-
-  /* ── frames ───────────────────────────────────────────────────────── */
-
-  // Every creature hands its shape function three views of the sample point:
-  //   s, a   along the bending spine (0 snout .. 1 tail tip) and across it, signed, in body lengths
-  //   hx, hy in the rigid frame of the head: forward and to the right, in body lengths
-  //   sx, sy screen-space directions of the local "right" axis, for turning normals and fin rays
-  const F = { s: 0, a: 0, hx: 0, hy: 0, tx: 1, ty: 0, px: 0, py: 1, htx: 1, hty: 0 };
-
-  // Normal on screen for a point that sits `across` (-1..1) over a body whose right-hand side
-  // points along (px, py) in screen space.
-  function bodyLight(across, px, py, k) {
-    k = k === undefined ? 0.85 : k;
-    return lit(px * across * k, py * across * k);
-  }
-  // Screen direction of a vector given in head frame (forward f, right r).
-  function headDir(f, r) {
-    return [F.htx * f - F.hty * r, F.hty * f + F.htx * r];
+  // Squash a fin polygon towards its root along x, as the tail beats side to side.
+  function beat(p, rootX, k) {
+    const out = p.slice();
+    for (let i = 0; i < out.length; i += 2) out[i] = rootX + (out[i] - rootX) * k;
+    return out;
   }
 
-  /* ── species ──────────────────────────────────────────────────────── */
+  /* ── local frame ──────────────────────────────────────────────────── */
 
-  // Each species: { len (spine extent in body lengths), reach (how far its shape strays from the spine),
-  //   shape(c, t) -> boolean, writing `hit` }.
+  // Shapes are drawn in body lengths: x forward (snout near +0.5), y down.
+  const F = { x: 0, y: 0 };
 
-  /* Hammerhead: a wide cephalofoil with eyes at its tips, tall dorsal, long upper tail lobe. */
-  const HAMMER = { back: [104, 112, 112], edge: [150, 156, 150], belly: [196, 198, 190], eye: [18, 20, 22] };
-  function hammerW(s) {
-    if (s < 0.06) return 0.04 + 0.3 * s;
-    if (s < 0.3) return 0.058 + 0.034 * smooth(0.06, 0.3, s);
-    return 0.014 + 0.078 * (1 - smooth(0.3, 0.8, s));
+  /* ── fish bodies ──────────────────────────────────────────────────── */
+
+  // Side profile: a round snout swelling to the shoulder, tapering to the tail stalk.
+  function prof(u, a, b) {
+    if (u <= 0 || u >= 1) return 0;
+    const m = a / (a + b);
+    return (Math.pow(u, a) * Math.pow(1 - u, b)) / (Math.pow(m, a) * Math.pow(1 - m, b));
   }
-  const hammerhead = {
-    len: 1,
-    reach: 0.26,
-    shape(c) {
-      const { s, a, hx, hy, px, py } = F;
-      // Cephalofoil: a flat bar across the head, gently swept back, scalloped at the front.
-      const q = hy / 0.165;
-      if (Math.abs(q) <= 1 && hx < 0.03) {
-        const front = 0.022 - 0.03 * q * q + 0.004 * Math.cos(q * 9);
-        const rear = -0.048 - 0.02 * q * q;
-        if (hx <= front && hx >= rear) {
-          if (Math.abs(q) > 0.86 && Math.abs(hx - (front + rear) / 2) < 0.012) return put(HAMMER.eye, 1, 1, "o");
-          const t = (hx - (front + rear) / 2) / ((front - rear) / 2);
-          const [nx, ny] = headDir(t * 0.6, q * 0.25);
-          const col = mixc(HAMMER.back, HAMMER.edge, smooth(0.5, 1, Math.abs(q)));
-          return put(col, lit(nx, ny), 1);
-        }
-      }
-      // Pectoral fins, swept back.
-      const sa = Math.abs(a);
-      const pec = [0.22, 0.07, 0.32, 0.08, 0.46, 0.25, 0.41, 0.26];
-      if (inPoly(pec, s, sa)) return put(HAMMER.back, 0.78, 1, lineGlyph(...dirOnScreen(s - 0.27, sa - 0.06, a)));
-      const pel = [0.58, 0.035, 0.62, 0.035, 0.68, 0.085, 0.65, 0.09];
-      if (inPoly(pel, s, sa)) return put(HAMMER.back, 0.72, 1, "");
-      if (s < 0 || s > 1) return false;
-      // Tail: from above the tall caudal reads as a thin blade; the upper lobe runs on to the tip.
-      if (s > 0.8) {
-        const w = 0.012 * (1 - smooth(0.8, 1, s)) + 0.006;
-        const sway = 0.02 * smooth(0.82, 1, s);
-        if (Math.abs(a - sway * Math.sin(c.phase)) < w) return put(HAMMER.back, 0.8, 1, lineGlyph(F.tx, F.ty));
-        return false;
-      }
-      const w = hammerW(s);
-      if (sa > w) return false;
-      const across = a / w;
-      // Dorsal fin seen from above: a dark blade down the spine.
-      if (s > 0.27 && s < 0.4 && Math.abs(across) < 0.16) return put(HAMMER.back, 0.55, 1, lineGlyph(F.tx, F.ty));
-      const col = mixc(HAMMER.back, HAMMER.edge, smooth(0.55, 1, Math.abs(across)));
-      return put(col, bodyLight(across, px, py), 1);
-    },
-  };
-  // Turn a direction given in (along spine, across |a|) into screen space at the sample.
-  function dirOnScreen(ds, da, a) {
-    const side = a < 0 ? -1 : 1;
-    return [F.tx * ds + F.px * da * side, F.ty * ds + F.py * da * side];
+  // Test the body of a fish. Leaves u (0 at the snout) and v (-1 back, 1 belly) in B.
+  const B = { u: 0, v: 0, h: 0 };
+  function body(x, y, H, a, b, end, ped, yc) {
+    const u = 0.5 - x;
+    if (u < 0 || u > end) return false;
+    const h = Math.max(H * prof(u / 0.98, a, b), ped);
+    const v = (y - (yc || 0)) / h;
+    if (Math.abs(v) > 1) return false;
+    B.u = u;
+    B.v = v;
+    B.h = h;
+    return true;
+  }
+  // Shade a body cell: rounded across, a little brighter towards the snout.
+  function bodyLit() {
+    const nx = B.u < 0.1 ? (1 - B.u / 0.1) * 0.7 : 0;
+    return lit(nx, B.v * 0.85);
+  }
+  function fin(col, l, a, dx, dy) {
+    return put(col, l, a === undefined ? 0.92 : a, lineGlyph(dx || 0, dy || 0));
   }
 
-  /* Whale shark: broad flat head, white spots between pale cross stripes, three ridges. */
-  const WHALE = { back: [36, 56, 78], edge: [70, 92, 112], spot: [214, 224, 228], ridge: [92, 116, 134] };
-  function whaleW(s) {
-    if (s < 0.06) return 0.11 * Math.pow(s / 0.06, 0.45);
-    if (s < 0.24) return 0.11 + 0.012 * smooth(0.06, 0.24, s);
-    return 0.016 + 0.106 * (1 - smooth(0.24, 0.8, s));
-  }
+  /* Whale shark: a broad flat head, white spots between pale stripes, ridges along the flank. */
+  const WHALE = { back: [38, 60, 84], belly: [200, 206, 210], spot: [222, 230, 234], fin: [44, 66, 90] };
   const whaleShark = {
-    len: 1,
-    reach: 0.3,
+    box: [0.56, 0.3],
     shape(c) {
-      const { s, a, px, py } = F;
-      const sa = Math.abs(a);
-      const pec = [0.22, 0.08, 0.32, 0.09, 0.46, 0.29, 0.4, 0.3];
-      if (inPoly(pec, s, sa)) {
-        const spot = hash2(Math.floor(s * 60), Math.floor(sa * 60)) < 0.12;
-        return put(spot ? WHALE.spot : WHALE.back, 0.8, 1, spot ? "." : lineGlyph(...dirOnScreen(s - 0.27, sa - 0.08, a)));
+      const { x, y } = F;
+      const k = 0.72 + 0.28 * Math.cos(c.phase);
+      if (inPoly([0.25, 0.05, 0.11, 0.22, 0.06, 0.21, 0.16, 0.06], x, y)) return fin(WHALE.fin, 0.78, 0.95, x - 0.25, y - 0.05);
+      if (body(x, y, 0.12, 0.32, 1.2, 0.8, 0.018, 0.006)) {
+        const { u, v } = B;
+        const l = bodyLit();
+        if (Math.abs(u - 0.035) < 0.012 && Math.abs(v + 0.15) < 0.12) return put([16, 20, 24], 1, 1, "o");
+        if (u < 0.035 && v > 0.15 && v < 0.4) return put([20, 26, 30], 0.7, 1, "-");
+        if (u > 0.16 && u < 0.25 && Math.abs(v) < 0.55 && fract((u - 0.16) * 62) < 0.28) return put([24, 36, 50], l, 1, "|");
+        const col = mixc(WHALE.back, WHALE.belly, smooth(0.05, 0.5, v));
+        if (v < 0.35) {
+          if (Math.abs(v + 0.42) < 0.07 || Math.abs(v - 0.02) < 0.06) return put(mixc(col, WHALE.spot, 0.3), l, 1, "-");
+          const gu = u * 40, gv = (v + 1) * 4.2;
+          const fu = fract(gu + (Math.floor(gv) % 2) * 0.5) - 0.5, fv = fract(gv) - 0.5;
+          if (u > 0.2 && Math.abs(fract(gu * 0.5) - 0.5) > 0.47) return put(mixc(col, WHALE.spot, 0.4), l, 1, "|");
+          if (fu * fu + fv * fv < 0.07) return put(WHALE.spot, 0.6 + 0.4 * l, 1, "o");
+        }
+        return put(col, l, 1);
       }
-      if (s < 0 || s > 1) return false;
-      if (s > 0.8) {
-        const w = 0.016 * (1 - smooth(0.8, 1, s)) + 0.008;
-        if (Math.abs(a) < w) return put(WHALE.back, 0.82, 1, lineGlyph(F.tx, F.ty));
-        return false;
-      }
-      const w = whaleW(s);
-      if (sa > w) return false;
-      const across = a / w;
-      const l = bodyLight(across, px, py, 0.7);
-      // Ridges along the back.
-      if (s > 0.12 && s < 0.7 && (Math.abs(across) < 0.07 || Math.abs(Math.abs(across) - 0.42) < 0.06))
-        return put(WHALE.ridge, l, 1, lineGlyph(F.tx, F.ty));
-      // Mouth: a wide pale line across the front of the head.
-      if (s < 0.018 && Math.abs(across) < 0.85) return put(WHALE.edge, l * 0.6, 1, "-");
-      // Pale cross stripes with spots in the panels between them, finer on the head.
-      const k = s < 0.18 ? 64 : 34;
-      const gu = s * k, gv = a * k * 1.15;
-      const fu = fract(gu) - 0.5, fv = fract(gv + (Math.floor(gu) % 2) * 0.5) - 0.5;
-      if (s > 0.18 && Math.abs(fu) > 0.44) return put(mixc(WHALE.back, WHALE.spot, 0.45), l, 1, "|");
-      if (fu * fu + fv * fv < 0.05) return put(WHALE.spot, l, 1, "o");
-      const col = mixc(WHALE.back, WHALE.edge, smooth(0.6, 1, Math.abs(across)));
-      return put(col, l, 1);
+      if (inPoly([0.09, -0.08, -0.07, -0.25, -0.1, -0.24, -0.07, -0.05], x, y)) return fin(WHALE.fin, 0.82, 0.95, x - 0.05, y + 0.08);
+      if (inPoly([-0.2, -0.03, -0.26, -0.09, -0.28, -0.02], x, y)) return fin(WHALE.fin, 0.8);
+      if (inPoly([-0.1, 0.05, -0.17, 0.12, -0.19, 0.05], x, y)) return fin(WHALE.fin, 0.7);
+      if (inPoly(beat([-0.28, -0.016, -0.5, -0.27, -0.44, -0.04, -0.47, 0.15, -0.28, 0.016], -0.29, k), x, y))
+        return fin(WHALE.fin, 0.8, 0.95, x + 0.29, y);
+      return false;
     },
   };
 
-  /* Sea turtle: domed shell of plates, slow sweeping front flippers. Rigid, in the head frame. */
-  const TURTLE = { shell: [116, 82, 44], plate: [170, 122, 58], seam: [52, 34, 20], skin: [132, 136, 100], scale: [196, 192, 150] };
-  // Plate centres on the shell, as fractions of its half axes (forward, right).
-  const PLATES = [
-    [0.62, 0], [0.3, 0], [-0.02, 0], [-0.34, 0], [-0.64, 0],
-    [0.42, 0.52], [0.1, 0.6], [-0.22, 0.6], [-0.52, 0.48],
-    [0.42, -0.52], [0.1, -0.6], [-0.22, -0.6], [-0.52, -0.48],
-  ];
-  function flipper(hx, hy, rootX, rootY, ang, len, w0, w1) {
+  /* Hammerhead: the hammer seen a little from below, eyes at both tips; a tall sickle dorsal. */
+  const HAMMER = { back: [104, 112, 110], belly: [206, 206, 196], fin: [110, 118, 114], eye: [18, 20, 22] };
+  const hammerhead = {
+    box: [0.56, 0.3],
+    shape(c) {
+      const { x, y } = F;
+      const k = 0.72 + 0.28 * Math.cos(c.phase);
+      // Cephalofoil: a flat blade across the head, foreshortened into a tall thin oval.
+      const hx = (x - 0.455) / 0.045, hy = y / 0.13;
+      if (hx * hx + hy * hy <= 1) {
+        if (Math.abs(hy) > 0.82) return put(HAMMER.eye, 1, 1, "o");
+        return put(mixc(HAMMER.back, HAMMER.belly, smooth(-0.2, 0.6, hy)), lit(hx * 0.6, hy * 0.5), 1);
+      }
+      if (inPoly([0.22, 0.05, 0.05, 0.19, 0.01, 0.18, 0.13, 0.05], x, y)) return fin(HAMMER.fin, 0.76, 0.95, x - 0.22, y - 0.05);
+      if (body(x, y, 0.075, 0.5, 1.25, 0.8, 0.012, 0.004)) {
+        const { u, v } = B;
+        const l = bodyLit();
+        if (u > 0.15 && u < 0.24 && Math.abs(v) < 0.5 && fract((u - 0.15) * 55) < 0.3) return put([60, 66, 64], l, 1, "|");
+        return put(mixc(HAMMER.back, HAMMER.belly, smooth(0.1, 0.55, v)), l, 1);
+      }
+      if (inPoly([0.13, -0.06, -0.01, -0.29, -0.06, -0.27, -0.04, -0.05], x, y)) return fin(HAMMER.fin, 0.86, 0.95, x - 0.1, y + 0.06);
+      if (inPoly([-0.22, -0.02, -0.26, -0.07, -0.28, -0.015], x, y)) return fin(HAMMER.fin, 0.8);
+      if (inPoly([-0.08, 0.04, -0.14, 0.1, -0.16, 0.04], x, y)) return fin(HAMMER.fin, 0.7);
+      if (inPoly(beat([-0.29, -0.012, -0.53, -0.2, -0.48, -0.16, -0.42, -0.03, -0.44, 0.09, -0.29, 0.012], -0.3, k), x, y))
+        return fin(HAMMER.fin, 0.82, 0.95, x + 0.3, y);
+      return false;
+    },
+  };
+
+  /* Sea turtle: a domed shell of plates over a pale plastron, front flippers sweeping slowly. */
+  const TURTLE = { shell: [112, 80, 42], plate: [172, 124, 60], seam: [50, 32, 18], skin: [130, 136, 98], scale: [196, 192, 150], belly: [214, 196, 140] };
+  const PLATES = [[-0.2, -0.75], [0.25, -0.75], [0.65, -0.55], [-0.6, -0.55], [-0.45, -0.18], [0, -0.25], [0.45, -0.2], [-0.85, -0.15], [0.85, -0.1]];
+  function flipper(x, y, rootX, rootY, ang, len, w0, w1) {
     const ca = Math.cos(ang), sa = Math.sin(ang);
-    const dx = hx - rootX, dy = hy - rootY;
-    const u = dx * ca + dy * sa; // along the flipper
+    const dx = x - rootX, dy = y - rootY;
+    const u = dx * ca + dy * sa;
     const v = -dx * sa + dy * ca;
-    if (u < 0 || u > len) return -1;
+    if (u < 0 || u > len) return -2;
     const t = u / len;
-    const w = mix(w0, w1, t) * Math.sin(Math.PI * Math.min(1, 0.15 + t)) ;
-    if (Math.abs(v) > w) return -1;
+    const w = mix(w0, w1, t) * Math.sin(Math.PI * Math.min(1, 0.15 + t));
+    if (Math.abs(v) > w) return -2;
     return v / w;
   }
   const turtle = {
-    len: 0.2,
-    reach: 0.75,
-    rigid: true,
+    box: [0.62, 0.45],
     shape(c) {
-      const { hx, hy } = F;
-      // Front flippers: long paddles that sweep back and forward together.
-      const sweep = Math.sin(c.phase);
-      for (const side of [-1, 1]) {
-        const ang = side * (1.95 - 0.55 * sweep);
-        const v = flipper(hx, hy, 0.12, side * 0.16, ang, 0.44, 0.075, 0.03);
-        if (v > -1) {
-          const [nx, ny] = headDir(0, v * 0.6 * side);
-          const spot = hash2(Math.floor(hx * 70 + 99), Math.floor(hy * 70 + 99)) < 0.3;
-          return put(spot ? TURTLE.scale : TURTLE.skin, lit(nx, ny) * 0.92, 1, spot ? "." : "");
-        }
-        const vr = flipper(hx, hy, -0.27, side * 0.11, side * (2.5 - 0.25 * sweep), 0.15, 0.05, 0.02);
-        if (vr > -1) return put(TURTLE.skin, 0.8, 1, "");
+      const { x, y } = F;
+      const sweep = Math.sin(c.phase * 0.7);
+      // Near-side front flipper, in front of everything.
+      const v = flipper(x, y, 0.16, 0.05, 2.75 - 0.45 * sweep, 0.42, 0.075, 0.03);
+      if (v > -2) {
+        const spot = hash2(Math.floor(x * 70 + 99), Math.floor(y * 70 + 99)) < 0.3;
+        return put(spot ? TURTLE.scale : TURTLE.skin, lit(0, v * 0.5) * 0.95, 1, spot ? "." : "");
       }
       // Head and neck.
-      const qh = ((hx - 0.36) / 0.1) ** 2 + (hy / 0.072) ** 2;
-      if (qh < 1) {
-        if (Math.abs(hy) > 0.035 && Math.abs(hy) < 0.06 && Math.abs(hx - 0.39) < 0.016) return put([20, 20, 16], 1, 1, "o");
-        const [nx, ny] = headDir((hx - 0.36) / 0.1 * 0.7, hy / 0.072 * 0.7);
-        const cell = hash2(Math.floor(hx * 90), Math.floor(hy * 90 + 50)) < 0.35;
-        return put(cell ? TURTLE.scale : TURTLE.skin, lit(nx, ny), 1, cell ? ":" : "");
+      const qh = ((x - 0.42) / 0.11) ** 2 + ((y - 0.03) / 0.075) ** 2;
+      if (qh < 1 || (x > 0.26 && x < 0.36 && Math.abs(y - 0.04) < 0.05)) {
+        if (Math.abs(x - 0.45) < 0.016 && Math.abs(y - 0.005) < 0.016) return put([20, 20, 16], 1, 1, "o");
+        const cell = hash2(Math.floor(x * 90), Math.floor(y * 90 + 50)) < 0.35;
+        return put(cell ? TURTLE.scale : TURTLE.skin, lit((x - 0.41) * 4, (y - 0.03) * 6), 1, cell ? ":" : "");
       }
-      // Tail.
-      if (Math.abs(hy) < 0.025 * (1 - (-0.36 - hx) / 0.1) && hx < -0.34 && hx > -0.46) return put(TURTLE.skin, 0.8, 1, "");
-      // Shell.
-      const fx = (hx + 0.02) / 0.34, fy = hy / 0.25;
-      const r = fx * fx + fy * fy;
-      if (r > 1) return false;
-      const [nx, ny] = headDir(fx * 0.8, fy * 0.8);
-      const l = lit(nx, ny);
-      if (r > 0.8) {
-        // Marginal plates around the rim.
-        const ang = Math.atan2(fy, fx);
-        if (Math.abs(fract(ang / TAU * 26) - 0.5) > 0.42 || r < 0.84) return put(TURTLE.seam, l, 1, "");
-        return put(TURTLE.shell, l, 1, "");
+      // Shell: a dome of plates over a flat plastron.
+      const fx = x / 0.33, fy = y / 0.21;
+      if (fy <= 0.12 && fx * fx + fy * fy <= 1) {
+        const l = lit(fx * 0.7, fy * 0.8);
+        if (fy > -0.04) return put(TURTLE.seam, l, 1, "_");
+        let d1 = 9, d2 = 9;
+        for (const p of PLATES) {
+          const d = (fx - p[0]) ** 2 + (fy - p[1]) ** 2;
+          if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d;
+        }
+        if (Math.sqrt(d2) - Math.sqrt(d1) < 0.08) return put(TURTLE.seam, l, 1, "");
+        return put(mixc(TURTLE.plate, TURTLE.shell, smooth(0, 0.14, d1)), l, 1);
       }
-      let d1 = 9, d2 = 9;
-      for (const p of PLATES) {
-        const d = (fx - p[0]) ** 2 + (fy - p[1]) ** 2;
-        if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d;
-      }
-      if (Math.sqrt(d2) - Math.sqrt(d1) < 0.07) return put(TURTLE.seam, l, 1, "");
-      const col = mixc(TURTLE.plate, TURTLE.shell, smooth(0, 0.12, d1));
-      return put(col, l, 1);
+      if (y > 0 && y < 0.07 && Math.abs(x) < 0.29) return put(TURTLE.belly, lit(0, 0.4), 1, "=");
+      // Back flipper and the far-side flipper, darker behind the shell.
+      if (flipper(x, y, -0.26, 0.04, 2.6 - 0.2 * sweep, 0.16, 0.05, 0.02) > -2) return put(TURTLE.skin, 0.8, 1, "");
+      if (flipper(x, y, 0.1, 0.0, 3.3 + 0.45 * sweep, 0.36, 0.06, 0.025) > -2) return put(TURTLE.skin, 0.55, 1, "");
+      if (x < -0.31 && x > -0.4 && Math.abs(y - 0.03) < 0.02) return put(TURTLE.skin, 0.75, 1, "");
+      return false;
     },
   };
 
-  /* Blue-spotted stingray: a round disc with rippling edges, bright blue spots, ribbon tail. */
-  const STING = { disc: [150, 122, 70], rim: [116, 96, 58], spot: [60, 150, 236], tail: [70, 120, 190] };
+  /* Blue-spotted stingray: a flat disc seen a little from above, its edge rippling, a ribbon tail. */
+  const STING = { disc: [150, 122, 70], under: [206, 196, 170], spot: [64, 152, 236], tail: [70, 120, 190] };
   const stingray = {
-    len: 1,
-    reach: 0.3,
+    box: [0.62, 0.2],
     shape(c) {
-      const { s, a, hx, hy } = F;
-      // Disc, in the head frame: front at hx 0, centred at hx -0.2.
-      const cx = hx + 0.2;
-      const ang = Math.atan2(hy, cx);
-      const ripple = 0.012 * Math.sin(c.phase * 1.4 - Math.abs(ang) * 5);
-      const R = 0.2 * (1 + 0.12 * Math.cos(2 * ang)) * (1 - 0.06 * Math.max(0, Math.cos(ang))) + ripple;
-      const r = Math.hypot(cx, hy);
-      if (r < R) {
-        const t = r / R;
-        const [nx, ny] = headDir(cx / R * 0.6, hy / R * 0.6);
-        const l = lit(nx, ny);
-        // Eyes and spiracles.
-        if (Math.abs(Math.abs(hy) - 0.035) < 0.013 && Math.abs(hx + 0.06) < 0.012) return put([30, 26, 18], 1, 1, "o");
-        const gx = (cx + 1) * 34, gy = (hy + 1) * 34;
-        const fx = fract(gx) - 0.5, fy = fract(gy + (Math.floor(gx) % 2) * 0.5) - 0.5;
-        const spot = hash2(Math.floor(gx), Math.floor(gy + (Math.floor(gx) % 2) * 0.5)) < 0.42;
-        if (t < 0.9 && spot && fx * fx + fy * fy < 0.07) return put(STING.spot, 0.6 + 0.4 * l, 1, "o", 0.15);
-        const col = mixc(STING.disc, STING.rim, smooth(0.75, 1, t));
-        return put(col, l, 1, t > 0.93 ? lineGlyph(-hy, cx) : "");
-      }
-      // Tail along the spine; a blue band on each side and a sting partway down.
-      if (s > 0.38 && s < 1) {
-        const w = 0.022 * (1 - smooth(0.4, 1, s)) + 0.004;
-        if (Math.abs(a) < w) {
-          const band = Math.abs(a) > w * 0.5 && s < 0.75;
-          return put(band ? STING.tail : STING.disc, 0.85, 1, lineGlyph(F.tx, F.ty));
+      const { x, y } = F;
+      const cx = (x - 0.18) / 0.32;
+      if (Math.abs(cx) <= 1) {
+        const wave = 0.022 * Math.sin(c.phase * 1.4 - cx * 5) * Math.abs(cx);
+        const top = -0.13 * Math.sqrt(1 - cx * cx) + wave;
+        const bot = 0.04 * Math.sqrt(1 - cx * cx) + wave;
+        if (y >= top && y <= bot) {
+          if (y > wave) return put(STING.under, 0.8, 1, "-");
+          const t = (y - wave) / (top - wave || -1);
+          const l = lit(cx * 0.5, -t * 0.7);
+          if (Math.abs(cx - 0.38) < 0.06 && t > 0.5 && t < 0.9) return put([30, 26, 18], 1, 1, "o");
+          const gx = x * 46, gy = y * 46;
+          const fx = fract(gx) - 0.5, fy = fract(gy + (Math.floor(gx) % 2) * 0.5) - 0.5;
+          if (t < 0.92 && hash2(Math.floor(gx), Math.floor(gy + (Math.floor(gx) % 2) * 0.5)) < 0.45 && fx * fx + fy * fy < 0.08)
+            return put(STING.spot, 0.6 + 0.4 * l, 1, "o", 0.15);
+          return put(STING.disc, l, 1);
         }
       }
-      return false;
-    },
-  };
-
-  /* Manta ray: broad swept wings that beat slowly, white shoulder chevrons, cephalic horns. */
-  const MANTA = { back: [34, 40, 54], edge: [56, 64, 80], white: [222, 226, 230] };
-  const manta = {
-    len: 1.45,
-    reach: 0.75,
-    rigid: false,
-    shape(c) {
-      const { s, a, hx, hy } = F;
-      const beat = Math.cos(c.phase);
-      const span = 0.62 * (0.86 + 0.14 * beat);
-      const ahy = Math.abs(hy);
-      // Cephalic horns at the front.
-      if (hx > -0.02 && hx < 0.08 && Math.abs(ahy - 0.075) < 0.018 - hx * 0.1) return put(MANTA.back, 0.8, 1, "|");
-      // Wings: leading edge from the head out to a swept tip, trailing edge back to the tail root.
-      const tipX = -0.3 + 0.04 * beat;
-      const wing = [0.02, 0.0, 0.02, 0.1, tipX + 0.16, span * 0.72, tipX, span, tipX - 0.06, span * 0.9, -0.42, 0.2, -0.56, 0.06, -0.56, 0.0];
-      if (inPoly(wing, hx, ahy)) {
-        const t = ahy / span;
-        const [nx, ny] = headDir(0, (hy < 0 ? -1 : 1) * (t * 0.7 - 0.15 * beat));
-        const l = lit(nx, ny);
-        if (hx < -0.04 && hx > -0.2 && ahy > 0.1 && ahy < 0.34 && hx > -0.04 - (ahy - 0.1) * 0.55 && hx < -0.04 - (ahy - 0.1) * 0.1)
-          return put(MANTA.white, l, 1, "");
-        return put(mixc(MANTA.back, MANTA.edge, smooth(0.6, 1, t)), l, 1, t > 0.75 ? lineGlyph(...headDir(-0.3, hy < 0 ? -1 : 1)) : "");
+      // Tail: a tapering ribbon with blue edges.
+      if (x < -0.12 && x > -0.62) {
+        const t = (-0.12 - x) / 0.5;
+        const ty = 0.01 + 0.02 * Math.sin(c.phase - t * 3) * t;
+        const w = 0.016 * (1 - t) + 0.003;
+        if (Math.abs(y - ty) < w) return put(Math.abs(y - ty) > w * 0.5 && t < 0.6 ? STING.tail : STING.disc, 0.85, 1, "-");
       }
-      // Whip tail, rooted inside the back of the body so it never floats free when the spine bends.
-      if (s > 0.4 && s < 1.45 && Math.abs(a) < 0.006 + 0.024 * (1 - smooth(0.4, 1.45, s))) return put(MANTA.back, 0.8, 1, lineGlyph(F.tx, F.ty));
       return false;
     },
   };
 
-  // Glyph-drawn creatures: a faint wash of colour with the shape carried by bright characters.
-  // `density` 0..1 picks a sparse or a heavy glyph; `ink` is the glyph colour.
+  /* Manta ray: seen a little from below, white belly, dark wing edges, wings beating slowly. */
+  const MANTA = { back: [32, 38, 52], belly: [222, 226, 230], edge: [60, 68, 84] };
+  const manta = {
+    box: [0.7, 0.42],
+    shape(c) {
+      const { x, y } = F;
+      const flap = 0.13 * Math.sin(c.phase * 0.8);
+      // Cephalic horns.
+      if (x > 0.22 && x < 0.3 && Math.abs(Math.abs(y) - 0.035) < 0.014) return put(MANTA.back, 0.8, 1, "-");
+      // Wings: the far one above, the near one below, both rising and falling together.
+      for (const s of [-1, 1]) {
+        // An arrowhead: leading edge swept back to the tip, trailing edge curving in to the tail root.
+        const tipY = s * 0.27 + flap;
+        const wing = [0.25, 0, 0.18, s * 0.05, 0.02, s * 0.15 + flap * 0.6, -0.16, tipY, -0.21, tipY * 0.95, -0.16, s * 0.12 + flap * 0.4, -0.22, s * 0.04, -0.26, 0];
+        if (inPoly(wing, x, y)) {
+          const t = Math.abs(y - flap * 0.3) / 0.27;
+          const l = lit(0, s * 0.3 - flap);
+          const edge = t > 0.72 || x > 0.21 - Math.abs(y) * 0.7;
+          if (Math.abs(y) < 0.05 && x > 0.0 && x < 0.12 && fract(x * 60) < 0.3) return put([40, 44, 54], l, 1, "|");
+          return put(edge ? MANTA.edge : mixc(MANTA.belly, MANTA.edge, smooth(0.45, 0.75, t)), l, 1, edge ? lineGlyph(-0.3, s) : "");
+        }
+      }
+      // Whip tail.
+      if (x < -0.2 && x > -0.68 && Math.abs(y - 0.015 * Math.sin(c.phase - x * 6)) < 0.008 + (0.012 * (x + 0.68)) / 0.48)
+        return put(MANTA.back, 0.8, 1, "-");
+      return false;
+    },
+  };
+
+  /* Sardine: a small silver fish with a blue back and a forked tail, for schools. */
+  const SARDINE = { back: [56, 100, 150], flank: [214, 226, 238], fin: [150, 170, 190] };
+  const sardine = {
+    box: [0.56, 0.16],
+    shape(c) {
+      const { x, y } = F;
+      const k = 0.7 + 0.3 * Math.cos(c.phase * 2);
+      if (body(x, y, 0.12, 0.5, 1.1, 0.8, 0.024, 0)) {
+        const { u, v } = B;
+        if (Math.abs(u - 0.08) < 0.03 && Math.abs(v + 0.1) < 0.3) return put([16, 20, 28], 1, 1, "o");
+        const col = v < -0.25 ? SARDINE.back : SARDINE.flank;
+        return put(col, bodyLit(), 1, "", v > -0.2 && v < 0.5 ? 0.06 : 0);
+      }
+      if (inPoly(beat([-0.29, -0.02, -0.5, -0.13, -0.42, 0, -0.5, 0.13, -0.29, 0.02], -0.3, k), x, y)) return fin(SARDINE.fin, 0.85, 0.9, x + 0.3, y);
+      return false;
+    },
+  };
+
+  /* Jellyfish: a domed bell of dense glyphs, thin tentacles and frilly arms hanging below,
+     drawn in glyphs only over a faint wash, so they read as see-through. */
   const JELLY_RAMP = "'.:;otS%X8@";
   function ink(col, density, a, glyphs) {
     const g = glyphs || JELLY_RAMP;
@@ -327,25 +306,26 @@
     hit.ink = col;
     return true;
   }
-
-  /* Jellyfish seen side on as they drift: a domed bell of dense glyphs, thin tentacles and
-     frilly oral arms streaming behind. Moon jellies are lavender; sea nettles amber with red tentacles. */
+  function pulse(ph) {
+    // Quick contraction, slow relax.
+    const p = fract(ph / TAU);
+    return p < 0.25 ? Math.sin((p / 0.25) * Math.PI * 0.5) : Math.cos(((p - 0.25) / 0.75) * Math.PI * 0.5);
+  }
+  // In the jelly's frame the bell points up (-y); its tilt is already taken out.
   function jelly(c, pal, arms, tents, armLen, tentLen) {
-    const { hx, hy } = F;
+    const hx = -F.y, hy = F.x;
     const p = pulse(c.phase);
     const bw = 0.5 * (1 + 0.08 * p), bh = 0.36 * (1 - 0.1 * p);
-    // Bell: a dome rising towards the heading, its rim slightly cupped.
     const v = hy / bw;
     const rim = 0.05 * (1 - v * v);
     if (Math.abs(v) <= 1 && hx >= -rim) {
       const u = (hx + rim) / (bh + rim);
       const r = u * u + v * v;
       if (r <= 1) {
-        // Dense at the crown and edges, thinner inside, with the rim scalloped.
+        // Dense at the crown and the edges, thinner inside.
         const edge = smooth(0.62, 1, r);
         const crown = smooth(0.55, 1, u);
         let d = 0.35 + 0.45 * edge + 0.25 * crown + 0.15 * (hash2(Math.floor(hx * 90 + 300), Math.floor(hy * 90 + 300)) - 0.5);
-        // Gonads: four soft marks under the crown.
         let col = pal.bell;
         for (let i = 0; i < 4; i++) {
           const gx = 0.42 * bh, gy = (i - 1.5) * 0.17 * bw;
@@ -357,14 +337,12 @@
     }
     const back = -hx;
     if (back < 0) return false;
-    // Oral arms: frilly ribbons from under the centre of the bell.
     for (let i = 0; i < arms; i++) {
       const off = (i - (arms - 1) / 2) * 0.09;
       const y = off * (1 + back * 0.3) + 0.05 * Math.sin(back * 5 - c.phase * 0.6 + i * 1.3) * smooth(0, 0.4, back);
       const w = (0.04 + 0.015 * Math.sin(back * 26 + i)) * (1 - back / (armLen * 1.15));
       if (back < armLen && Math.abs(hy - y) < w) return ink(pal.arm, 0.45 + 0.4 * (1 - back / armLen), 0.12);
     }
-    // Tentacles: thin, from all round the rim, fading out.
     for (let i = 0; i < tents; i++) {
       const off = (i / (tents - 1) - 0.5) * 0.92 * bw * 2;
       const y = off * (1 + back * 0.12) + 0.05 * Math.sin(back * 4.5 - c.phase * 0.5 + i * 1.9) * smooth(0, 0.5, back);
@@ -375,139 +353,116 @@
   }
   const MOON_INK = { bell: [196, 168, 232], mark: [240, 170, 220], arm: [214, 190, 240], tent: [180, 160, 220] };
   const NETTLE_INK = { bell: [238, 160, 84], mark: [250, 200, 130], arm: [244, 226, 196], tent: [210, 84, 70] };
+  const moonJelly = { jelly: true, box: [0.55, 1.2], shape: (c) => jelly(c, MOON_INK, 4, 12, 0.55, 1.1) };
+  const seaNettle = { jelly: true, box: [0.55, 1.9], shape: (c) => jelly(c, NETTLE_INK, 4, 10, 1.3, 1.8) };
 
-  function pulse(ph) {
-    // Quick contraction, slow relax.
-    const p = fract(ph / TAU);
-    return p < 0.25 ? Math.sin((p / 0.25) * Math.PI * 0.5) : Math.cos(((p - 0.25) / 0.75) * Math.PI * 0.5);
-  }
-  const moonJelly = {
-    radial: true,
-    reach: 1.2,
-    shape(c) {
-      return jelly(c, MOON_INK, 4, 12, 0.55, 1.1);
-    },
-  };
-
-  /* Sea nettle: the same build with longer arms and tentacles. */
-  const seaNettle = {
-    radial: true,
-    reach: 1.9,
-    shape(c) {
-      return jelly(c, NETTLE_INK, 4, 10, 1.3, 1.8);
-    },
-  };
-
-  /* Sardine: a small silver fish with a forked tail, for schools. */
-  const SARDINE = { back: [70, 118, 160], flank: [214, 228, 240], line: [120, 160, 200] };
-  const sardine = {
-    len: 1,
-    reach: 0.14,
-    shape(c) {
-      const { s, a, px, py } = F;
-      if (s < 0 || s > 1) return false;
-      const sa = Math.abs(a);
-      // Forked tail: two lobes spreading from the stalk with a V notch between them.
-      if (s > 0.8) {
-        const t = (s - 0.8) / 0.2;
-        if (sa < 0.018 + 0.09 * t && sa > 0.07 * t * t - 0.01) return put(SARDINE.back, 0.85, 1, lineGlyph(F.tx, F.ty));
-        return false;
-      }
-      const w = s < 0.22 ? 0.085 * Math.pow(s / 0.22, 0.5) : 0.018 + 0.067 * (1 - smooth(0.22, 0.8, s));
-      if (sa > w) return false;
-      const across = a / w;
-      if (s > 0.06 && s < 0.11 && Math.abs(Math.abs(across) - 0.5) < 0.25) return put([20, 26, 34], 1, 1, "o");
-      const col = Math.abs(across) < 0.4 ? SARDINE.back : SARDINE.flank;
-      return put(col, bodyLight(across, px, py), 1, "", Math.abs(across) > 0.55 ? 0.08 : 0);
-    },
-  };
-
-  /* Lotus on a lily pad, floating on the surface. */
-  const LOTUS = { pad: [66, 120, 58], vein: [96, 150, 80], petal: [240, 168, 192], base: [252, 232, 236], heart: [236, 196, 70] };
+  /* Floating on the surface, seen from the side: a lotus cupped above its pad, and cherry blossoms. */
+  const LOTUS = { pad: [62, 118, 56], under: [40, 80, 44], petal: [240, 166, 190], base: [252, 232, 236], heart: [236, 196, 70] };
   const lotus = {
-    radial: true,
     surface: true,
-    reach: 0.55,
-    shape(c) {
-      const { hx, hy } = F;
-      const r = Math.hypot(hx, hy);
-      const ang = Math.atan2(hy, hx) - c.spin;
-      // Flower, sitting a little off the pad's centre.
-      const fx = hx - 0.06, fy = hy + 0.04;
-      const fr = Math.hypot(fx, fy), fa = Math.atan2(fy, fx) - c.spin * 0.5;
-      if (fr < 0.06) return put(LOTUS.heart, lit(fx * 4, fy * 4), 1, fr < 0.035 ? "o" : "*");
-      for (const [n, len, rot] of [[6, 0.17, 0.5], [8, 0.27, 0]]) {
-        const sec = fract((fa / TAU) * n + rot) - 0.5; // -0.5..0.5 across a petal
-        const width = 0.5 * Math.sin(Math.PI * clamp(fr / len, 0, 1)) * (1 - fr / len * 0.3);
-        if (fr < len && Math.abs(sec) < width * 0.95) {
-          const t = fr / len;
-          const col = mixc(LOTUS.base, LOTUS.petal, smooth(0.2, 0.9, t));
-          const [nx, ny] = [fx / len * 0.5, fy / len * 0.5];
-          return put(col, lit(nx, ny) * (Math.abs(sec) > width * 0.8 ? 0.82 : 1), 1, Math.abs(sec) > width * 0.75 ? lineGlyph(fx, fy) : "");
+    box: [0.55, 0.4],
+    shape() {
+      const { x, y } = F;
+      // Petals: pointed, fanning out from the base, tips leaning outward.
+      for (let i = -3; i <= 3; i++) {
+        const lean = i * 0.055, h = 0.3 - Math.abs(i) * 0.045;
+        const t = -y / h;
+        if (t < 0 || t > 1) continue;
+        const cx = lean * t * 1.4;
+        const w = 0.06 * Math.sin(Math.PI * Math.min(1, 0.25 + t * 0.85));
+        if (Math.abs(x - cx) < w) {
+          const col = mixc(LOTUS.base, LOTUS.petal, smooth(0.15, 0.9, t));
+          const shade = Math.abs(i) % 2 ? 0.85 : 1;
+          return put(col, lit(((x - cx) / w) * 0.6, -0.4) * shade, 1, Math.abs(x - cx) > w * 0.7 ? "|" : "");
         }
       }
-      // Pad with a wedge slit and radial veins.
-      if (r > 0.5) return false;
-      const wedge = Math.abs(((ang + Math.PI) % TAU) - Math.PI);
-      if (wedge < 0.16 * (r / 0.5)) return false;
-      const vein = Math.abs(fract(ang / TAU * 18) - 0.5) < 0.07 && r > 0.08;
-      return put(vein ? LOTUS.vein : LOTUS.pad, lit(hx * 0.3, hy * 0.3) * (r > 0.46 ? 0.8 : 1), 1, vein ? lineGlyph(hx, hy) : "");
+      // Pad: a thin flat disc on the water, its underside darker.
+      if (Math.abs(x) < 0.5 && y > -0.012 && y < 0.03 * Math.sqrt(1 - (x / 0.5) ** 2)) {
+        const under = y > 0.012;
+        return put(under ? LOTUS.under : LOTUS.pad, under ? 0.7 : 1, 1, under ? "" : "=");
+      }
+      return false;
     },
   };
-
-  /* Cherry blossom: five notched petals floating on the surface. */
   const SAKURA = { petal: [248, 200, 214], deep: [232, 150, 176], heart: [246, 220, 120] };
   const sakura = {
-    radial: true,
     surface: true,
-    reach: 0.55,
+    box: [0.55, 0.25],
     shape(c) {
-      const { hx, hy } = F;
-      const r = Math.hypot(hx, hy);
-      const ang = Math.atan2(hy, hx) - c.spin;
-      if (r < 0.1) return put(SAKURA.heart, 1, 1, r < 0.05 ? "*" : ".");
-      const sec = fract(ang / TAU * 5) - 0.5;
-      const notch = 0.5 - 0.06 * Math.exp(-((sec * 14) ** 2));
-      const R = notch * (1 - 1.1 * sec * sec);
+      const { x, y } = F;
+      // A five-petal flower seen at a low angle: a flat ellipse with notched petals.
+      const fy = y / 0.3;
+      const r = Math.hypot(x, fy);
+      if (r < 0.08) return put(SAKURA.heart, 1, 1, "*");
+      const ang = Math.atan2(fy, x) - c.spin;
+      const sec = fract((ang / TAU) * 5) - 0.5;
+      const R = (0.5 - 0.06 * Math.exp(-((sec * 14) ** 2))) * (1 - 1.1 * sec * sec);
       if (r > R) return false;
-      const col = mixc(SAKURA.deep, SAKURA.petal, smooth(0.08, 0.3, r));
-      return put(col, lit(hx * 0.4, hy * 0.4), 1, Math.abs(sec) > 0.42 ? lineGlyph(hx, hy) : "");
+      return put(mixc(SAKURA.deep, SAKURA.petal, smooth(0.08, 0.3, r)), lit(x * 0.5, -0.5), 1, Math.abs(sec) > 0.42 ? "|" : "");
     },
   };
 
-  const SPECIES = { hammerhead, whaleShark, turtle, stingray, manta, moonJelly, seaNettle, sardine, lotus, sakura };
+  /* Scenery on the sand: kelp that sways, coral and rocks. Props are rooted at (0, 0) and grow up. */
+  const KELP = { stem: [74, 108, 46], blade: [112, 146, 58] };
+  const kelp = {
+    prop: true,
+    box: [0.35, 1.05],
+    shape(c, t) {
+      const { x, y } = F;
+      const up = -y;
+      if (up < 0 || up > 1) return false;
+      const sway = (Math.sin(t * 0.35 + c.seed + up * 2.2) * 0.07 + Math.sin(t * 0.6 + c.seed * 2 + up * 4) * 0.02) * up * up * 1.6;
+      const sx = x - sway;
+      if (Math.abs(sx) < 0.012) return put(KELP.stem, 0.8, 1, "|");
+      // Blades on alternating sides.
+      const n = Math.floor(up * 9 + c.seed);
+      const side = n % 2 ? 1 : -1;
+      const local = fract(up * 9 + c.seed);
+      const len = 0.11 * (1 - up * 0.4);
+      const bx = sx * side;
+      if (bx > 0 && bx < len) {
+        const along = bx / len;
+        const centre = 0.35 - along * 0.25;
+        const w = 0.22 * Math.sin(Math.PI * along) + 0.04;
+        if (Math.abs(local - centre) < w) return put(mixc(KELP.blade, KELP.stem, along * 0.5), lit(0, (local - centre) * 2), 0.95, along > 0.3 ? lineGlyph(side, -0.4) : "");
+      }
+      return false;
+    },
+  };
+  const coral = {
+    prop: true,
+    box: [0.6, 0.65],
+    shape(c) {
+      // Branching coral from tapered tubes, in body lengths.
+      const { x, y } = F;
+      for (const br of c.branches) {
+        const [ax, ay, bx, by, r] = br;
+        const ex = bx - ax, ey = by - ay;
+        const t = clamp(((x - ax) * ex + (y - ay) * ey) / (ex * ex + ey * ey), 0, 1);
+        const d = Math.hypot(x - ax - ex * t, y - ay - ey * t);
+        const w = r * (1 - t * 0.5);
+        if (d < w) return put(c.col, lit(0, -0.4) * (0.75 + 0.25 * (1 - d / w)), 1, t > 0.85 ? "o" : "");
+      }
+      return false;
+    },
+  };
+  const rock = {
+    prop: true,
+    box: [0.55, 0.4],
+    shape(c) {
+      const { x, y } = F;
+      const r = Math.hypot(x / 0.5, (y + 0.12) / 0.32) + 0.08 * Math.sin(Math.atan2(y, x) * 5 + c.seed);
+      if (r > 1 || y > 0.02) return false;
+      return put(c.col, lit(x * 0.8, (y + 0.12) * 2), 1, hash2(Math.floor(x * 40 + 99), Math.floor(y * 40 + 99)) < 0.2 ? ":" : "");
+    },
+  };
 
-  /* ── creature state ───────────────────────────────────────────────── */
-
-  const NODES = 14;
-  function makeCreature(kind, opts) {
-    const sp = SPECIES[kind];
-    const c = Object.assign(
-      { kind, sp, x: 0, y: 0, heading: 0, L: 100, depth: 0.3, phase: Math.random() * TAU, spin: 0, bend: 0.5 },
-      opts
-    );
-    c.nodes = new Float32Array(NODES * 2);
-    layStraight(c);
-    return c;
-  }
-  // Lay the spine out behind the head along the heading, with a gentle swimming curve.
-  function layStraight(c) {
-    const span = (c.sp.len || 1) * c.L;
-    const hx = Math.cos(c.heading), hy = Math.sin(c.heading);
-    for (let i = 0; i < NODES; i++) {
-      const t = i / (NODES - 1);
-      const wave = Math.sin(c.phase - t * 4) * 0.06 * c.bend * t * c.L;
-      c.nodes[i * 2] = c.x - hx * span * t - hy * wave;
-      c.nodes[i * 2 + 1] = c.y - hy * span * t + hx * wave;
-    }
-  }
+  const SPECIES = { whaleShark, hammerhead, turtle, stingray, manta, sardine, moonJelly, seaNettle, lotus, sakura, kelp, coral, rock };
 
   /* ── renderer ─────────────────────────────────────────────────────── */
 
   // Sparse glyphs on lit skin, dense ones in shadow.
   const RAMP = ":;t%SX8#@";
-  const SUB = [0.25, 0.3, 0.75, 0.3, 0.25, 0.72, 0.75, 0.72];
-  const CENTRE = [0.5, 0.5];
   const FONT = '"IBM Plex Mono", "DejaVu Sans Mono", ui-monospace, Menlo, monospace';
 
   class Renderer {
@@ -523,8 +478,8 @@
       this.w = w;
       this.h = h;
       this.dpr = dpr;
-      this.cw = cell || clamp(Math.round(w / 150), 7, 10);
-      this.ch = Math.round(this.cw * 1.6);
+      this.cw = cell;
+      this.ch = Math.round(cell * 1.6);
       this.cols = Math.ceil(w / this.cw);
       this.rows = Math.ceil(h / this.ch);
       this.canvas.width = Math.round(w * dpr);
@@ -540,160 +495,129 @@
       this.gr = new Float32Array(n);
       this.gg = new Float32Array(n);
       this.gb = new Float32Array(n);
-      this.shadow = new Float32Array(n);
     }
 
-    water(t) {
+    // Water from the bright surface down to the deep, light shafts from above, the sand floor.
+    background(t, tank) {
       const { cols, rows, cw, ch, tr, tg, tb, gl, gr, gg, gb } = this;
-      for (let r = 0; r < rows; r++) {
-        for (let q = 0; q < cols; q++) {
+      const n = this.night;
+      const surf = tank.surfaceY;
+      for (let q = 0; q < cols; q++) {
+        const x = q * cw;
+        const floor = tank.floorAt(x);
+        for (let r = 0; r < rows; r++) {
           const i = r * cols + q;
-          const x = q * cw, y = r * ch;
-          // Slow caustic web: two drifting wave fields crossing.
-          const w1 = Math.sin(x * 0.021 + t * 0.21 + Math.sin(y * 0.017 - t * 0.13) * 2.1);
-          const w2 = Math.sin(y * 0.026 - t * 0.17 + Math.sin(x * 0.014 + t * 0.11) * 2.3);
-          const w3 = Math.sin(x * 0.047 - y * 0.031 + t * 0.19 + w1);
-          const caustic = Math.pow(1 - Math.abs(w1 * w2), 9) * (0.55 + 0.45 * w3 * w3);
-          const deep = 0.5 + 0.5 * Math.sin(x * 0.004 + y * 0.003 + 1.3);
-          const n = this.night;
-          tr[i] = mix(24 + 10 * deep + 22 * caustic, 3 + 3 * deep + 4 * caustic, n);
-          tg[i] = mix(100 + 22 * deep + 34 * caustic, 10 + 6 * deep + 8 * caustic, n);
-          tb[i] = mix(120 + 20 * deep + 30 * caustic, 20 + 8 * deep + 12 * caustic, n);
-          const s = this.shadow[i];
-          if (s > 0) {
-            tr[i] *= 1 - s;
-            tg[i] *= 1 - s;
-            tb[i] *= 1 - s;
+          const y = r * ch;
+          gl[i] = "";
+          if (y < surf - 2) {
+            // Above the water: the dim room beyond the tank.
+            tr[i] = mix(14, 4, n); tg[i] = mix(40, 10, n); tb[i] = mix(50, 18, n);
+            continue;
           }
-          if (caustic > 0.62) {
-            gl[i] = caustic > 0.85 ? "~" : "-";
-            gr[i] = mix(96, 20, this.night); gg[i] = mix(170, 46, this.night); gb[i] = mix(180, 64, this.night);
-          } else if (hash2(q, r) < 0.012) {
-            // Drifting specks; at night a few of them glow.
-            const glowing = this.night > 0.5 && hash2(r, q) < 0.25;
+          const depth = clamp((y - surf) / (this.h - surf), 0, 1);
+          if (y > floor) {
+            // Sand: warm, rippled, darker further down.
+            const k = clamp((y - floor) / 60, 0, 1);
+            const rip = Math.sin(x * 0.09 + Math.sin(y * 0.07) * 2 + y * 0.02);
+            const sand = mixc([186, 160, 112], [120, 102, 72], k * 0.6);
+            const dim = mix(1, 0.3, n);
+            tr[i] = sand[0] * dim; tg[i] = sand[1] * dim; tb[i] = sand[2] * dim;
+            if (rip > 0.75 || hash2(q, r) < 0.05) {
+              gl[i] = rip > 0.75 ? "~" : hash2(r, q) < 0.5 ? "." : ",";
+              gr[i] = tr[i] * 0.7; gg[i] = tg[i] * 0.7; gb[i] = tb[i] * 0.7;
+            }
+            continue;
+          }
+          // Light shafts: soft slanted bands drifting slowly, fading with depth.
+          const sx = x + (y - surf) * 0.32;
+          const shaft = Math.pow(Math.max(0, 0.5 + 0.5 * Math.sin(sx * 0.011 + Math.sin(t * 0.07) * 1.5) * Math.sin(sx * 0.0047 - t * 0.05 + 1)), 3);
+          const ray = shaft * (1 - depth) * (1 - n * 0.85);
+          tr[i] = mix(mix(46, 8, depth), mix(6, 2, depth), n) + 30 * ray;
+          tg[i] = mix(mix(132, 52, depth), mix(20, 8, depth), n) + 44 * ray;
+          tb[i] = mix(mix(150, 82, depth), mix(36, 18, depth), n) + 40 * ray;
+          // Surface line: a band of small waves.
+          if (y - surf < ch * 1.2) {
+            const w = Math.sin(x * 0.05 + t * 0.6) + Math.sin(x * 0.021 - t * 0.4);
+            gl[i] = w > 0.4 ? "~" : "-";
+            gr[i] = mix(190, 60, n); gg[i] = mix(232, 110, n); gb[i] = mix(240, 130, n);
+            continue;
+          }
+          // Marine snow drifting down; at night some of it glows.
+          const drift = Math.floor(r - t * 0.6 * (0.5 + hash2(q, 3)));
+          if (hash2(q, drift) < 0.006) {
+            const glowing = n > 0.5 && hash2(drift, q) < 0.3;
             gl[i] = ".";
-            gr[i] = glowing ? 90 : mix(70, 26, this.night); gg[i] = glowing ? 220 : mix(140, 50, this.night); gb[i] = glowing ? 230 : mix(156, 66, this.night);
-          } else gl[i] = "";
+            gr[i] = glowing ? 90 : tr[i] * 1.6; gg[i] = glowing ? 220 : tg[i] * 1.5; gb[i] = glowing ? 230 : tb[i] * 1.4;
+          } else if (ray > 0.35) {
+            gl[i] = ray > 0.6 ? "/" : "'";
+            gr[i] = tr[i] * 1.25; gg[i] = tg[i] * 1.2; gb[i] = tb[i] * 1.15;
+          }
         }
       }
     }
 
-    // Sample a creature over the cells its bounding box covers.
-    draw(c, castShadow) {
+    draw(c, t) {
       const { cols, rows, cw, ch } = this;
       const sp = c.sp;
       const L = c.L;
-      const scale = 1;
-      const fog = c.depth * 0.42;
-      const nodes = c.nodes;
-      // Bounding box from spine plus reach.
-      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-      for (let i = 0; i < NODES; i++) {
-        x0 = Math.min(x0, nodes[i * 2]); x1 = Math.max(x1, nodes[i * 2]);
-        y0 = Math.min(y0, nodes[i * 2 + 1]); y1 = Math.max(y1, nodes[i * 2 + 1]);
-      }
-      const pad = (sp.reach + 0.05) * L * scale;
-      let offX = 0, offY = 0;
-      if (castShadow) {
-        offX = castShadow * 0.9;
-        offY = castShadow;
-      }
-      const c0 = Math.max(0, Math.floor((x0 - pad + offX) / cw)), c1 = Math.min(cols - 1, Math.floor((x1 + pad + offX) / cw));
-      const r0 = Math.max(0, Math.floor((y0 - pad + offY) / ch)), r1 = Math.min(rows - 1, Math.floor((y1 + pad + offY) / ch));
-      // Head frame from the first spine segment.
-      let htx = nodes[0] - nodes[2], hty = nodes[1] - nodes[3];
-      const hl = Math.hypot(htx, hty) || 1;
-      htx /= hl; hty /= hl;
-      if (sp.radial) { htx = Math.cos(c.heading); hty = Math.sin(c.heading); }
-      F.htx = htx; F.hty = hty;
+      const fog = c.depth * 0.5;
       const night = this.night;
-      const sub = this.cw <= 6 ? CENTRE : SUB;
-      const water = mixc([30, 112, 128], [8, 22, 38], night);
+      // Facing and turning: face runs from 1 (facing right) through 0 (head on) to -1.
+      const ax = Math.max(0.14, Math.abs(c.face));
+      FACE = c.face < 0 ? -1 : 1;
+      const cos = Math.cos(-c.pitch), sin = Math.sin(-c.pitch);
+      const reach = Math.hypot(sp.box[0], sp.box[1]) * L;
+      // Props are rooted at their base, so nothing of them hangs below it.
+      const c0 = Math.max(0, Math.floor((c.x - reach) / cw)), c1 = Math.min(cols - 1, Math.floor((c.x + reach) / cw));
+      const r0 = Math.max(0, Math.floor((c.y - reach) / ch));
+      const r1 = Math.min(rows - 1, Math.floor((c.y + (sp.prop ? 0.05 * L : reach)) / ch));
+      const water = mixc([46, 132, 150], [6, 20, 36], night);
       for (let r = r0; r <= r1; r++) {
         for (let q = c0; q <= c1; q++) {
-          // Big cells take four samples so coverage can soften the outline; fine cells need only one.
-          // The first hit gives the glyph.
-          let n = 0, R = 0, G = 0, B = 0, A = 0, L0 = 0, ch0 = "", glow = 0, ink0 = null, first = true;
-          for (let k = 0; k < sub.length; k += 2) {
-            const X = (q + sub[k]) * cw - offX, Y = (r + sub[k + 1]) * ch - offY;
-            const dx = (X - nodes[0]) / L, dy = (Y - nodes[1]) / L;
-            F.hx = dx * htx + dy * hty;
-            F.hy = -dx * hty + dy * htx;
-            if (!sp.radial) this.spineCoords(c, X, Y);
-            if (!sp.shape(c)) continue;
-            n++;
-            R += hit.r; G += hit.g; B += hit.b; A += hit.a;
-            if (first || (hit.ch && !ch0)) { L0 = hit.l; ch0 = hit.ch; glow = hit.glow; ink0 = hit.ink; first = false; }
-          }
-          if (!n) continue;
+          const dx = ((q + 0.5) * cw - c.x) / L, dy = ((r + 0.5) * ch - c.y) / L;
+          const rx = dx * cos - dy * sin, ry = dx * sin + dy * cos;
+          F.x = (rx / ax) * FACE;
+          F.y = ry;
+          if (!sp.shape(c, t)) continue;
           const i = r * cols + q;
-          const cover = (n * 2) / sub.length;
-          if (castShadow) {
-            this.shadow[i] = Math.max(this.shadow[i], (0.32 - 0.12 * night) * (A / n) * cover);
+          if (hit.ink) {
+            // Glyph-drawn: the character carries the colour; it fades with depth and holds up at night.
+            const k = mix(1, 0.8, night) * (1 - c.depth * 0.3);
+            this.tr[i] = mix(this.tr[i], hit.ink[0], hit.a * 0.4);
+            this.tg[i] = mix(this.tg[i], hit.ink[1], hit.a * 0.4);
+            this.tb[i] = mix(this.tb[i], hit.ink[2], hit.a * 0.4);
+            this.gl[i] = hit.ch;
+            this.gr[i] = mix(hit.ink[0] * k, water[0], fog * 0.6);
+            this.gg[i] = mix(hit.ink[1] * k, water[1], fog * 0.6);
+            this.gb[i] = mix(hit.ink[2] * k, water[2], fog * 0.6);
             continue;
           }
-          R /= n; G /= n; B /= n;
-          // Glowing creatures stay bright at night; everything else dims with the water.
-          const dim = mix(1, mix(0.62, 1, glow > 0 ? 0.85 : 0), night);
-          R *= dim; G *= dim; B *= dim;
-          R = mix(R, water[0], fog); G = mix(G, water[1], fog); B = mix(B, water[2], fog);
-          const a = (A / n) * cover * (1 - c.depth * 0.15);
+          // Everything else dims with the water at night; turning edge-on darkens a little.
+          const dim = mix(1, mix(0.55, 1, hit.glow > 0 ? 0.6 : 0), night) * (0.8 + 0.2 * ax);
+          const R = mix(hit.r * dim, water[0], fog), G = mix(hit.g * dim, water[1], fog), Bc = mix(hit.b * dim, water[2], fog);
+          const a = hit.a * (1 - c.depth * 0.15);
           this.tr[i] = mix(this.tr[i], R, a);
           this.tg[i] = mix(this.tg[i], G, a);
-          this.tb[i] = mix(this.tb[i], B, a);
-          if (ink0) {
-            // Glyph-drawn: the character carries the colour; it fades with depth, and holds up at night.
-            const k = mix(1, 0.8, night) * (1 - c.depth * 0.3);
-            this.gl[i] = ch0;
-            this.gr[i] = mix(ink0[0] * k, water[0], fog * 0.6);
-            this.gg[i] = mix(ink0[1] * k, water[1], fog * 0.6);
-            this.gb[i] = mix(ink0[2] * k, water[2], fog * 0.6);
-          } else if (cover < 0.5 && !ch0) {
-            // Soft edge: a light glyph instead of a block.
-            this.gl[i] = cover < 0.3 ? "." : ":";
-            this.gr[i] = Math.min(255, R * 1.1); this.gg[i] = Math.min(255, G * 1.1); this.gb[i] = Math.min(255, B * 1.1);
-          } else if (a > 0.3 || ch0) {
-            const glyph = ch0 === " " ? "" : ch0 || RAMP[clamp(Math.floor((1 - L0) * 1.45 * RAMP.length), 0, RAMP.length - 1)];
-            this.gl[i] = glyph;
-            // Etched glyphs: darker than the tile; translucent creatures glow lighter instead.
-            const k = glow > 0 ? 1.3 + glow : ch0 ? 0.55 : 0.7;
-            const add = glow > 0 ? 24 + 40 * night : 0;
-            this.gr[i] = Math.min(255, this.tr[i] * k + add);
-            this.gg[i] = Math.min(255, this.tg[i] * k + add);
-            this.gb[i] = Math.min(255, this.tb[i] * k + add * 1.1);
+          this.tb[i] = mix(this.tb[i], Bc, a);
+          if (a > 0.3 || hit.ch) {
+            this.gl[i] = hit.ch === " " ? "" : hit.ch || RAMP[clamp(Math.floor((1 - hit.l) * 1.45 * RAMP.length), 0, RAMP.length - 1)];
+            const k = hit.ch ? 0.55 : 0.7;
+            this.gr[i] = this.tr[i] * k; this.gg[i] = this.tg[i] * k; this.gb[i] = this.tb[i] * k;
           }
         }
       }
     }
 
-    // Nearest point on the spine: arc position s, signed distance a, local tangent and right-hand normal.
-    spineCoords(c, X, Y) {
-      const n = c.nodes;
-      const L = c.L;
-      const span = (c.sp.len || 1);
-      let best = Infinity, bs = 0, ba = 0, btx = 1, bty = 0;
-      for (let i = 0; i < NODES - 1; i++) {
-        const ax = n[i * 2], ay = n[i * 2 + 1], bx = n[i * 2 + 2], by = n[i * 2 + 3];
-        const ex = bx - ax, ey = by - ay;
-        const el = ex * ex + ey * ey || 1;
-        const t = ((X - ax) * ex + (Y - ay) * ey) / el;
-        const tc = clamp(t, i === 0 ? -1 : 0, i === NODES - 2 ? 2 : 1);
-        const qx = ax + ex * tc, qy = ay + ey * tc;
-        const d = (X - qx) ** 2 + (Y - qy) ** 2;
-        if (d < best) {
-          best = d;
-          const len = Math.sqrt(el);
-          const tx = -ex / len, ty = -ey / len; // pointing towards the head
-          btx = tx; bty = ty;
-          bs = ((i + tc) / (NODES - 1)) * span;
-          // Right of the heading: (-ty, tx)
-          ba = ((X - qx) * -ty + (Y - qy) * tx) / L;
-        }
+    bubbles(list) {
+      const { cols, rows, cw, ch } = this;
+      const k = mix(1, 0.6, this.night);
+      for (const b of list) {
+        const q = Math.floor(b.x / cw), r = Math.floor(b.y / ch);
+        if (q < 0 || r < 0 || q >= cols || r >= rows) continue;
+        const i = r * cols + q;
+        this.gl[i] = b.size > 0.66 ? "O" : b.size > 0.33 ? "o" : "°";
+        this.gr[i] = 220 * k; this.gg[i] = 244 * k; this.gb[i] = 250 * k;
       }
-      F.s = bs;
-      F.a = ba;
-      F.tx = btx; F.ty = bty;
-      F.px = -bty; F.py = btx;
     }
 
     present() {
@@ -731,288 +655,290 @@
       }
     }
 
-    // Rings spreading on the surface: a thin line of glyphs that fades as it widens.
-    drawRipples(ripples) {
-      const { cols, rows, cw, ch } = this;
-      for (const rp of ripples) {
-        const life = rp.age / rp.life;
-        if (life >= 1) continue;
-        const R = rp.r0 + rp.speed * rp.age;
-        const fade = (1 - life) * (1 - life) * rp.strength;
-        const c0 = Math.max(0, Math.floor((rp.x - R - cw) / cw)), c1 = Math.min(cols - 1, Math.floor((rp.x + R + cw) / cw));
-        const r0 = Math.max(0, Math.floor((rp.y - R - ch) / ch)), r1 = Math.min(rows - 1, Math.floor((rp.y + R + ch) / ch));
-        for (let r = r0; r <= r1; r++) {
-          for (let q = c0; q <= c1; q++) {
-            const dx = (q + 0.5) * cw - rp.x, dy = ((r + 0.5) * ch - rp.y) * 1.0;
-            const d = Math.hypot(dx, dy);
-            if (Math.abs(d - R) > cw * 0.75) continue;
-            const i = r * cols + q;
-            const k = 0.35 * fade;
-            this.tr[i] = mix(this.tr[i], 210, k);
-            this.tg[i] = mix(this.tg[i], 240, k);
-            this.tb[i] = mix(this.tb[i], 245, k);
-            this.gl[i] = lineGlyph(-dy, dx);
-            const g = mix(this.gg[i], 255, fade);
-            this.gr[i] = mix(this.gr[i], 220, fade); this.gg[i] = g; this.gb[i] = mix(this.gb[i], 255, fade);
-          }
-        }
-      }
-    }
-
-    frame(creatures, t, ripples) {
-      this.shadow.fill(0);
-      // Shadows on the sea floor for anything near the surface: the shallower, the further it falls.
-      for (const c of creatures) {
-        if (c.depth < 0.5) this.draw(c, 6 + (0.5 - c.depth) * 40);
-      }
-      this.water(t);
-      const order = [...creatures].sort((a, b) => b.depth - a.depth);
-      // Ripples sit on the surface: under the floating flowers, over everything that swims.
-      let rippled = false;
-      for (const c of order) {
-        if (!rippled && c.depth <= 0.02 && ripples) { this.drawRipples(ripples); rippled = true; }
-        this.draw(c, 0);
-      }
-      if (!rippled && ripples) this.drawRipples(ripples);
+    frame(tank) {
+      this.background(tank.t, tank);
+      const order = tank.creatures.slice().sort((a, b) => b.depth - a.depth);
+      for (const c of order) this.draw(c, tank.t);
+      this.bubbles(tank.bubbleList);
       this.present();
     }
   }
 
   /* ── the tank ─────────────────────────────────────────────────────── */
 
-  // How each species moves: cruising speed (body lengths per second is too fast for big ones,
-  // so these are pixels per second at full size), turn rate, and how shy it is of the pointer.
+  // Cruising speed in pixels per second at full size, how fast it climbs or dives, and how shy it is.
   const MOVES = {
-    whaleShark: { speed: 20, turn: 0.12, shy: 0 },
-    hammerhead: { speed: 38, turn: 0.3, shy: 0.2 },
-    turtle: { speed: 22, turn: 0.2, shy: 0.4 },
-    stingray: { speed: 26, turn: 0.25, shy: 0.6 },
-    manta: { speed: 28, turn: 0.18, shy: 0.2 },
-    sardine: { speed: 46, turn: 2.2, shy: 1.6 },
-    moonJelly: { speed: 6, turn: 0.1, shy: 0 },
-    seaNettle: { speed: 7, turn: 0.1, shy: 0 },
-    lotus: { speed: 3, turn: 0.05, shy: 0 },
-    sakura: { speed: 5, turn: 0.1, shy: 0 },
+    whaleShark: { speed: 20, climb: 4, shy: 0 },
+    hammerhead: { speed: 36, climb: 8, shy: 0.2 },
+    turtle: { speed: 22, climb: 8, shy: 0.4 },
+    stingray: { speed: 26, climb: 4, shy: 0.6 },
+    manta: { speed: 26, climb: 6, shy: 0.2 },
+    sardine: { speed: 48, climb: 20, shy: 1.6 },
+    moonJelly: { speed: 7, climb: 7, shy: 0 },
+    seaNettle: { speed: 6, climb: 6, shy: 0 },
+    lotus: { speed: 3, climb: 0, shy: 0 },
+    sakura: { speed: 5, climb: 0, shy: 0 },
   };
   const NAMES = {
     whaleShark: "Whale shark", hammerhead: "Hammerhead", turtle: "Sea turtle", stingray: "Blue-spotted stingray",
-    manta: "Manta ray", sardine: "Sardine", moonJelly: "Moon jellyfish", seaNettle: "Sea nettle",
+    manta: "Manta ray", sardine: "Sardines", moonJelly: "Moon jellyfish", seaNettle: "Sea nettle",
     lotus: "Lotus", sakura: "Cherry blossom",
   };
-
-  function angleTo(a, b) {
-    let d = b - a;
-    while (d > Math.PI) d -= TAU;
-    while (d < -Math.PI) d += TAU;
-    return d;
-  }
+  const CORALS = [[236, 120, 140], [244, 150, 90], [200, 120, 210], [236, 196, 110]];
 
   class Tank {
     constructor(canvas) {
       this.canvas = canvas;
       this.renderer = new Renderer(canvas);
       this.creatures = [];
-      this.ripples = [];
+      this.bubbleList = [];
       this.pointer = { x: -9999, y: -9999, on: false };
       this.t = 0;
-      this.mode = "auto";
       this.night = 0;
       this.resize();
+    }
+
+    rand(a, b) { return a + Math.random() * (b - a); }
+
+    floorAt(x) {
+      return this.floorY + Math.sin(x * 0.004 + 1.3) * this.h * 0.022 + Math.sin(x * 0.011) * this.h * 0.008;
     }
 
     resize() {
       const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const first = !this.w;
+      const kx = first ? 1 : w / this.w, ky = first ? 1 : h / this.h;
       this.w = w; this.h = h;
       this.unit = clamp(Math.sqrt(w * h) / 1100, 0.5, 1.15);
+      // Leave room above the water for the title and buttons.
+      this.surfaceY = Math.max(w < 600 ? 92 : 72, h * 0.08);
+      this.floorY = h * 0.86;
       this.renderer.resize(w, h, dpr, w < 600 ? 4 : clamp(Math.round(w / 280), 4, 6));
-      if (!this.creatures.length) this.populate();
+      if (first) { this.populate(); return; }
+      for (const c of this.creatures) {
+        c.x *= kx;
+        if (c.sp.prop) c.y = this.floorAt(c.x) + 6;
+        else if (c.sp.surface) c.y = this.surfaceY;
+        else c.y *= ky;
+      }
     }
 
-    rand(a, b) { return a + Math.random() * (b - a); }
-
     spawn(kind, L, depth, extra) {
-      const shrink = 1 - 0.3 * depth;
-      const c = makeCreature(kind, Object.assign({
+      const c = Object.assign({
+        kind,
+        sp: SPECIES[kind],
         x: this.rand(0.1, 0.9) * this.w,
-        y: this.rand(0.12, 0.88) * this.h,
-        heading: this.rand(0, TAU),
-        L: L * this.unit * shrink,
-        baseL: L,
+        y: this.rand(this.surfaceY + 60, this.floorY - 60),
+        dir: Math.random() < 0.5 ? -1 : 1,
+        flip: 0, pitch: 0, vx: 0, vy: 0,
+        L: L * this.unit * (1 - 0.35 * depth),
         depth,
-        bend: 0.6,
-        wanderSeed: Math.random() * 100,
-      }, extra));
-      c.move = MOVES[kind];
+        phase: Math.random() * TAU,
+        seed: Math.random() * 100,
+        spin: Math.random() * TAU,
+      }, extra);
+      c.face = c.dir;
+      c.move = MOVES[kind] || { speed: 0, climb: 0, shy: 0 };
       c.speed = c.move.speed * (0.6 + 0.4 * this.unit) * this.rand(0.85, 1.15);
-      c.target = c.heading;
-      c.flee = 0;
+      c.targetY = c.y;
       this.creatures.push(c);
-      this.resetSpine(c);
       return c;
     }
 
     populate() {
       const small = this.w < 700;
-      this.spawn("whaleShark", 560, 0.62, { bend: 0.5 });
-      this.spawn("hammerhead", 320, 0.38, { bend: 0.8 });
-      if (!small) this.spawn("hammerhead", 280, 0.55, { bend: 0.8 });
-      this.spawn("turtle", 250, 0.22);
-      this.spawn("stingray", 250, 0.72);
-      this.spawn("manta", 260, 0.46);
-      this.spawn("moonJelly", 150, 0.12, { spin: Math.random() * TAU });
-      this.spawn("moonJelly", 110, 0.3, { spin: Math.random() * TAU });
-      if (!small) this.spawn("moonJelly", 90, 0.44, { spin: Math.random() * TAU });
-      this.spawn("seaNettle", 110, 0.26);
-      // Schools of bait fish.
+      const W = this.w;
+      // Scenery along the floor.
+      const kelps = small ? 3 : 5;
+      for (let i = 0; i < kelps; i++) {
+        const x = ((i + 0.5) / kelps + this.rand(-0.04, 0.04)) * W;
+        const tall = this.rand(0.35, 0.6) * (this.floorY - this.surfaceY);
+        this.spawn("kelp", 0, i % 2 ? 0.55 : 0.2, { x, y: this.floorAt(x) + 6, L: tall, dir: 1 });
+      }
+      for (let i = 0; i < (small ? 3 : 6); i++) {
+        const x = this.rand(0.05, 0.95) * W;
+        const branches = [];
+        const n = 3 + Math.floor(Math.random() * 3);
+        for (let b = 0; b < n; b++) {
+          const ang = -Math.PI / 2 + (n > 1 ? b / (n - 1) - 0.5 : 0) * 1.4;
+          const len = this.rand(0.35, 0.6);
+          const mx = Math.cos(ang) * len * 0.5, my = Math.sin(ang) * len * 0.5;
+          branches.push([0, 0, mx, my, 0.06]);
+          branches.push([mx, my, mx + Math.cos(ang - 0.4) * len * 0.5, my + Math.sin(ang - 0.4) * len * 0.5, 0.045]);
+          branches.push([mx, my, mx + Math.cos(ang + 0.4) * len * 0.45, my + Math.sin(ang + 0.4) * len * 0.45, 0.04]);
+        }
+        this.spawn("coral", this.rand(110, 170), i % 2 ? 0.45 : 0.15, { x, y: this.floorAt(x) + 4, dir: 1, branches, col: CORALS[i % CORALS.length] });
+      }
+      for (let i = 0; i < (small ? 2 : 4); i++) {
+        const x = this.rand(0.05, 0.95) * W;
+        const g = this.rand(70, 110);
+        this.spawn("rock", this.rand(90, 160), i % 2 ? 0.5 : 0.25, { x, y: this.floorAt(x) + 6, dir: 1, col: [g, g * 0.98, g * 0.92] });
+      }
+      // Swimmers.
+      const mid = (this.surfaceY + this.floorY) / 2, span = this.floorY - this.surfaceY;
+      this.spawn("whaleShark", 560, 0.6, { y: mid });
+      this.spawn("hammerhead", 330, 0.35);
+      if (!small) this.spawn("hammerhead", 290, 0.55);
+      this.spawn("turtle", 240, 0.22);
+      this.spawn("stingray", 270, 0.4, { y: this.floorY - 40, low: true });
+      this.spawn("manta", 280, 0.45, { y: this.surfaceY + span * 0.3 });
+      this.spawn("moonJelly", 130, 0.12, { dir: 1 });
+      this.spawn("moonJelly", 95, 0.3, { dir: 1 });
+      if (!small) this.spawn("moonJelly", 80, 0.42, { dir: 1 });
+      this.spawn("seaNettle", 100, 0.26, { dir: 1, y: this.surfaceY + 80 });
       for (let s = 0; s < (small ? 1 : 2); s++) {
-        const cx = this.rand(0.2, 0.8) * this.w, cy = this.rand(0.25, 0.75) * this.h, hd = this.rand(0, TAU);
-        const n = small ? 14 : 20;
-        for (let i = 0; i < n; i++) {
-          this.spawn("sardine", 46, 0.08 + 0.08 * s, { x: cx + this.rand(-90, 90), y: cy + this.rand(-60, 60), heading: hd, school: s, bend: 1 });
+        const cx = this.rand(0.2, 0.8) * W, cy = this.rand(this.surfaceY + 120, this.floorY - 120);
+        const dir = Math.random() < 0.5 ? -1 : 1;
+        for (let i = 0; i < (small ? 14 : 22); i++) {
+          // Sardines keep a readable size even on phones.
+          this.spawn("sardine", Math.max(78, 64 / this.unit), 0.1 + 0.12 * s, { x: cx + this.rand(-80, 80), y: cy + this.rand(-40, 40), school: s, dir, vx: dir * 48 });
         }
       }
       // On the surface.
-      this.spawn("lotus", 160, 0, { spin: Math.random() * TAU });
-      if (!small) this.spawn("lotus", 110, 0, { spin: Math.random() * TAU });
-      for (let i = 0; i < (small ? 3 : 5); i++) this.spawn("sakura", this.rand(34, 56), 0, { spin: Math.random() * TAU });
+      this.spawn("lotus", 200, 0, { y: this.surfaceY });
+      if (!small) this.spawn("lotus", 150, 0.05, { y: this.surfaceY });
+      for (let i = 0; i < (small ? 3 : 5); i++) this.spawn("sakura", this.rand(30, 46), 0, { y: this.surfaceY + 1 });
     }
 
-    resetSpine(c) {
-      layStraight(c);
-      c.rest = new Float32Array(c.nodes);
-    }
-
-    // Follow-the-leader spine: each node trails the one ahead at a fixed spacing.
-    trail(c) {
-      const n = c.rest;
-      const seg = ((c.sp.len || 1) * c.L) / (NODES - 1);
-      n[0] = c.x; n[1] = c.y;
-      for (let i = 1; i < NODES; i++) {
-        let dx = n[i * 2] - n[i * 2 - 2], dy = n[i * 2 + 1] - n[i * 2 - 1];
-        const d = Math.hypot(dx, dy) || 1;
-        n[i * 2] = n[i * 2 - 2] + (dx / d) * seg;
-        n[i * 2 + 1] = n[i * 2 - 1] + (dy / d) * seg;
-      }
-      // Render spine: the trail plus a swimming wave that grows towards the tail.
-      for (let i = 0; i < NODES; i++) {
-        const t = i / (NODES - 1);
-        const j = Math.max(1, i);
-        let tx = n[j * 2 - 2] - n[j * 2], ty = n[j * 2 - 1] - n[j * 2 + 1];
-        const d = Math.hypot(tx, ty) || 1;
-        tx /= d; ty /= d;
-        const wave = Math.sin(c.phase - t * 4) * 0.05 * c.bend * t * c.L;
-        c.nodes[i * 2] = n[i * 2] - ty * wave;
-        c.nodes[i * 2 + 1] = n[i * 2 + 1] + tx * wave;
-      }
+    // Start a turn: the body narrows to head-on, then widens facing the other way.
+    turn(c) {
+      if (!c.flip) c.flip = 1e-6;
     }
 
     step(dt) {
       this.t += dt;
-      const { w, h, pointer } = this;
-      // Schools: centre and average heading of each.
+      const { w, pointer } = this;
+      const top = this.surfaceY, bottom = this.floorY;
       const schools = [];
       for (const c of this.creatures) {
         if (c.school === undefined) continue;
-        const S = (schools[c.school] ||= { x: 0, y: 0, hx: 0, hy: 0, n: 0 });
-        S.x += c.x; S.y += c.y; S.hx += Math.cos(c.heading); S.hy += Math.sin(c.heading); S.n++;
+        const S = (schools[c.school] ||= { x: 0, y: 0, vx: 0, vy: 0, n: 0 });
+        S.x += c.x; S.y += c.y; S.vx += c.vx; S.vy += c.vy; S.n++;
       }
-      for (const S of schools) if (S) { S.x /= S.n; S.y /= S.n; }
+      for (const S of schools) if (S) { S.x /= S.n; S.y /= S.n; S.vx /= S.n; S.vy /= S.n; }
 
       for (const c of this.creatures) {
-        const m = c.move;
-        const surface = c.depth === 0;
-        // Wander: a slowly drifting preferred heading.
-        c.target += (Math.sin(this.t * 0.11 + c.wanderSeed) * 0.5 + Math.sin(this.t * 0.043 + c.wanderSeed * 2)) * dt * m.turn;
-        let want = c.target;
-        // Stay in the tank: big ones may slip partly off screen, then come back.
-        const margin = surface ? 30 : Math.min(c.L * 0.25, 120);
-        const inX = c.x < -margin ? 1 : c.x > w + margin ? -1 : 0;
-        const inY = c.y < -margin ? 1 : c.y > h + margin ? -1 : 0;
-        if (inX || inY) want = Math.atan2(inY || (h / 2 - c.y) / h, inX || (w / 2 - c.x) / w);
-        // Schooling: steer towards the school's centre and heading.
+        const sp = c.sp, m = c.move;
+        c.phase += dt * (sp.jelly ? 1.1 : 2 + (c.speed / Math.max(40, c.L)) * 4);
+        if (sp.prop) continue;
+        if (sp.surface) {
+          // Drift along the surface, bobbing, nudged aside by the pointer.
+          c.x += c.dir * c.speed * dt;
+          c.y = top + Math.sin(this.t * 0.8 + c.seed) * 1.5;
+          c.spin += dt * 0.05;
+          if (c.x < -c.L) c.x = w + c.L; else if (c.x > w + c.L) c.x = -c.L;
+          if (pointer.on && Math.abs(pointer.x - c.x) < c.L * 0.6 && Math.abs(pointer.y - c.y) < 40) c.x += Math.sign(c.x - pointer.x) * 40 * dt;
+          continue;
+        }
+        if (sp.jelly) {
+          // Pulse upward, sink between pulses, drift with a slow current, tilting as they go.
+          const p = pulse(c.phase);
+          c.vy = mix(c.vy, -c.speed * 2.2 * p + c.speed * 0.9, dt * 2);
+          if (c.y < top + c.L * 0.6) c.vy = Math.max(c.vy, c.speed);
+          if (c.y > bottom - c.L * 1.4) c.vy = Math.min(c.vy, -c.speed);
+          c.x += Math.sin(this.t * 0.05 + c.seed) * c.speed * 0.8 * dt;
+          if (c.x < -c.L) c.x = w + c.L; else if (c.x > w + c.L) c.x = -c.L;
+          c.y += c.vy * dt;
+          c.pitch = Math.sin(this.t * 0.2 + c.seed) * 0.18;
+          continue;
+        }
         if (c.school !== undefined) {
+          // Boids: cohesion, alignment, separation, a slow wander, and bolting from the pointer.
           const S = schools[c.school];
-          const toC = Math.atan2(S.y - c.y, S.x - c.x);
-          const dist = Math.hypot(S.x - c.x, S.y - c.y);
-          const align = Math.atan2(S.hy, S.hx);
-          want = c.target = align + angleTo(align, toC) * clamp(dist / 160, 0, 0.8);
-          if (inX || inY) want = Math.atan2(inY || (h / 2 - c.y) / h, inX || (w / 2 - c.x) / w);
-          // Personal space.
+          let ax = (S.x - c.x) * 0.35 + (S.vx - c.vx) * 0.8 + Math.sin(this.t * 0.2 + c.school * 3) * 20;
+          let ay = (S.y - c.y) * 0.35 + (S.vy - c.vy) * 0.8 + Math.sin(this.t * 0.13 + c.school) * 10;
           for (const o of this.creatures) {
             if (o === c || o.school !== c.school) continue;
             const dx = c.x - o.x, dy = c.y - o.y;
-            if (Math.abs(dx) < c.L * 0.7 && Math.abs(dy) < c.L * 0.45) { c.x += dx * dt * 1.5; c.y += dy * dt * 1.5; }
+            if (dx * dx + dy * dy < c.L * c.L * 0.8) { ax += dx * 4; ay += dy * 6; }
           }
-        }
-        // Shy creatures turn away from the pointer; bait fish bolt.
-        let boost = 1;
-        if (pointer.on && m.shy > 0) {
-          const dx = c.x - pointer.x, dy = c.y - pointer.y;
-          const d = Math.hypot(dx, dy);
-          const R = 90 + 60 * m.shy;
-          if (d < R) {
-            const away = Math.atan2(dy, dx);
-            want = c.heading + angleTo(c.heading, away) * 0.9;
-            c.flee = Math.max(c.flee, (1 - d / R) * m.shy);
+          if (pointer.on) {
+            const dx = c.x - pointer.x, dy = c.y - pointer.y, d = Math.hypot(dx, dy) || 1;
+            if (d < 160) { ax += (dx / d) * 900 * (1 - d / 160); ay += (dy / d) * 900 * (1 - d / 160); }
           }
+          if (c.x < 40) ax += 120;
+          if (c.x > w - 40) ax -= 120;
+          if (c.y < top + 40) ay += 120;
+          if (c.y > bottom - 40) ay -= 120;
+          c.vx += ax * dt; c.vy += ay * dt;
+          const v = Math.hypot(c.vx, c.vy) || 1, max = c.speed * 2.2, min = c.speed * 0.6;
+          if (v > max) { c.vx *= max / v; c.vy *= max / v; }
+          if (v < min) { c.vx *= min / v; c.vy *= min / v; }
+          c.vy *= 1 - dt * 0.8;
+          c.x += c.vx * dt; c.y += c.vy * dt;
+          if (Math.sign(c.vx) !== c.dir && Math.abs(c.vx) > 6) this.turn(c);
+          c.pitch = clamp(Math.atan2(c.vy, Math.abs(c.vx)), -0.6, 0.6) * c.dir;
+        } else {
+          // Cruise along, wander up and down, turn at the walls; shy ones turn from the pointer.
+          if (Math.random() < dt * 0.08) c.targetY = c.low ? bottom - c.L * this.rand(0.08, 0.3) : this.rand(top + c.L * 0.3, bottom - c.L * 0.3);
+          c.vy = mix(c.vy, clamp((c.targetY - c.y) * 0.3, -m.climb, m.climb), dt);
+          const margin = c.L * 0.3;
+          if ((c.dir > 0 && c.x > w + margin) || (c.dir < 0 && c.x < -margin)) this.turn(c);
+          if (pointer.on && m.shy > 0) {
+            const ahead = (pointer.x - c.x) * c.dir;
+            if (ahead > 0 && ahead < c.L * 0.9 + 60 && Math.abs(pointer.y - c.y) < c.L * 0.4 + 40) this.turn(c);
+          }
+          c.x += c.dir * c.speed * (c.flip ? 0.35 : 1) * dt;
+          c.y += c.vy * dt;
+          c.y = clamp(c.y, top + c.L * 0.15, bottom - c.L * 0.06);
+          c.pitch = mix(c.pitch, clamp(Math.atan2(c.vy, c.speed) * 0.8, -0.25, 0.25) * c.dir, dt * 2);
         }
-        c.flee = Math.max(0, c.flee - dt * 0.8);
-        boost += c.flee * 2.2;
-        const turn = m.turn * (1 + c.flee * 3);
-        c.heading += clamp(angleTo(c.heading, want), -turn * dt, turn * dt);
-        const v = c.speed * boost;
-        c.x += Math.cos(c.heading) * v * dt;
-        c.y += Math.sin(c.heading) * v * dt;
-        // Tail beat speeds up with speed; jellies pulse at their own calm pace.
-        c.phase += dt * (c.sp.radial ? 1.1 : 1.6 + (v / Math.max(30, c.L)) * 3);
-        if (c.sp.radial) c.spin += dt * (surface ? 0.04 : 0.02);
-        // Floating flowers get nudged along by the pointer.
-        if (surface && pointer.on) {
-          const dx = c.x - pointer.x, dy = c.y - pointer.y, d = Math.hypot(dx, dy);
-          if (d < c.L * 0.6 + 30) { c.x += (dx / (d || 1)) * 30 * dt; c.y += (dy / (d || 1)) * 30 * dt; if (Math.random() < dt * 2) this.ripple(c.x, c.y, 0.5); }
+        if (c.flip) {
+          // The body turns through head-on: a second and a half for big ones, a blink for small fish.
+          c.flip += dt / (c.school !== undefined ? 0.35 : 1.4);
+          if (c.flip >= 0.5 && !c.flipped) { c.dir = -c.dir; c.flipped = true; }
+          if (c.flip >= 1) { c.flip = 0; c.flipped = false; }
         }
-        if (c.sp.radial) { c.nodes[0] = c.x; c.nodes[1] = c.y; } else this.trail(c);
+        // Mid-turn the body shows edge-on: |face| shrinks to 0 at the halfway point.
+        c.face = c.flip ? -c.dir * Math.cos(Math.PI * c.flip) * (c.flipped ? 1 : -1) : c.dir;
       }
-      for (const rp of this.ripples) rp.age += dt;
-      this.ripples = this.ripples.filter((rp) => rp.age < rp.life);
+      // Bubbles rise, wobble and pop at the surface; the kelp beds breathe a few now and then.
+      for (const b of this.bubbleList) {
+        b.y -= b.speed * dt;
+        b.x += Math.sin(this.t * 3 + b.seed) * 8 * dt;
+      }
+      this.bubbleList = this.bubbleList.filter((b) => b.y > top + 4);
+      if (Math.random() < dt * 0.6) {
+        const beds = this.creatures.filter((c) => c.kind === "kelp" || c.kind === "coral");
+        const src = beds[Math.floor(Math.random() * beds.length)];
+        if (src) this.bubble(src.x, src.y - 8, 3);
+      }
     }
 
-    ripple(x, y, strength) {
-      if (this.ripples.length > 24) return;
-      this.ripples.push({ x, y, r0: 4, speed: 34, age: 0, life: 3.2, strength: strength || 1 });
+    bubble(x, y, n) {
+      for (let i = 0; i < n && this.bubbleList.length < 120; i++) {
+        this.bubbleList.push({ x: x + this.rand(-10, 10), y: y + this.rand(-6, 6), speed: this.rand(30, 60), size: Math.random(), seed: Math.random() * 10 });
+      }
     }
 
-    // What sits under a point, nearest the surface first.
+    // What sits under a point, nearest the glass first.
     pick(x, y) {
       let best = null, bd = Infinity;
       for (const c of this.creatures) {
-        if (c.kind === "sardine") continue;
-        const n = c.nodes;
-        const span = c.sp.radial ? 0 : NODES - 1;
-        for (let i = 0; i <= span; i += 2) {
-          const d = Math.hypot(n[i * 2] - x, n[i * 2 + 1] - y) / (c.L * 0.5);
-          const score = d + c.depth * 0.3;
-          if (d < 0.6 && score < bd) { bd = score; best = c; }
-        }
+        if (c.sp.prop) continue;
+        const cy = c.sp.jelly ? c.y + c.L * 0.3 : c.y;
+        const d = Math.hypot((x - c.x) / (c.L * 0.5), (y - cy) / (c.L * (c.sp.jelly ? 0.6 : 0.25)));
+        const score = d + c.depth * 0.3;
+        if (d < 1 && score < bd) { bd = score; best = c; }
       }
       return best;
     }
 
     tap(x, y) {
-      this.ripple(x, y, 1);
-      const c = this.pick(x, y);
-      // Everything nearby flinches a little.
+      this.bubble(x, y, 6);
       for (const o of this.creatures) {
-        const d = Math.hypot(o.x - x, o.y - y);
-        if (d < 160 && o.move.shy > 0) o.flee = Math.max(o.flee, o.move.shy * (1 - d / 160));
+        if (o.move.shy > 0 && o.school === undefined) {
+          const d = Math.hypot(o.x - x, o.y - y);
+          if (d < o.L * 0.6 + 60 && (x - o.x) * o.dir > 0) this.turn(o);
+        }
       }
-      return c;
+      return this.pick(x, y);
     }
 
     render() {
       this.renderer.night = this.night;
-      this.renderer.frame(this.creatures, this.t, this.ripples);
+      this.renderer.frame(this);
     }
   }
 
@@ -1043,7 +969,6 @@
       if (!modeBtn) return;
       modeBtn.textContent = LABEL[mode];
       modeBtn.setAttribute("aria-label", "Lighting: " + LABEL[mode] + ". Tap to change.");
-      document.documentElement.dataset.night = targetNight() > 0.5 ? "1" : "0";
     }
     syncMode();
     if (modeBtn) modeBtn.addEventListener("click", (e) => {
@@ -1107,7 +1032,7 @@
     global.__tank = tank;
   }
 
-  global.Aquarium = { SPECIES, makeCreature, layStraight, Renderer, Tank, NODES, TAU };
+  global.Aquarium = { SPECIES, Renderer, Tank, TAU };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
 })(window);
