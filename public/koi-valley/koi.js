@@ -1831,11 +1831,11 @@ function renderScene(t) {
 
 // ---------- tags (HTML buttons over the scene) ----------
 const tagsEl = document.getElementById("tags");
-const TAGS = [...MARKS.map(m => ({ key: m.key, label: m.label, m })), { key: "projects", label: "Projects", pond: true }, { key: "aquarium", label: "Aquarium", dock: true }];
+const TAGS = [...MARKS.map(m => ({ key: m.key, label: m.label, m })), { key: "projects", label: "Projects", pond: true }, { key: "pond", label: "The Pond", dock: true }];
 for (const t of TAGS) {
   const b = document.createElement("button"); b.className = "tag-btn"; b.textContent = t.label; b.type = "button";
-  // the dock leads off the island to the aquarium page (its own root layout, so a full page load)
-  b.addEventListener("click", e => { e.stopPropagation(); if (t.dock) location.href = "/aquarium"; else openPlace(t.key); });
+  // the dock leads off the island to The Pond page (its own root layout, so a full page load)
+  b.addEventListener("click", e => { e.stopPropagation(); if (t.dock) location.href = "/pond"; else openPlace(t.key); });
   t.el = b; tagsEl.appendChild(b);
 }
 function occluded(x, y, h) {

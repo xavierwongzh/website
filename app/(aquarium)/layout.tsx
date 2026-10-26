@@ -5,8 +5,8 @@ import "./aquarium.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "Aquarium | Xavier Wong",
-  description: "An ASCII aquarium: hammerheads, a whale shark, dolphins, a sea turtle, rays, jellyfish and lotus pads, drawn in characters.",
+  title: "The Pond | Xavier Wong",
+  description: "The Pond, in ASCII: hammerheads, a whale shark, dolphins, a sea turtle, rays, jellyfish and lotus pads, drawn in characters.",
   openGraph: { images: [{ url: "/og.png", width: 1200, height: 630 }] },
 };
 

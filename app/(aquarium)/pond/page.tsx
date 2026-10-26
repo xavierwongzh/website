@@ -2,20 +2,22 @@ import Script from "next/script";
 
 // The tank is a self-contained canvas program (public/aquarium/aquarium.js);
 // React only renders the frame around it.
-export default function Aquarium() {
+export default function Pond() {
   return (
     <>
-      <canvas id="aquarium" aria-label="An ASCII aquarium with sharks, rays, dolphins, a turtle, jellyfish and lotus pads" role="img" />
+      <canvas id="aquarium" aria-label="An ASCII pond with sharks, rays, dolphins, a turtle, jellyfish and lotus pads" role="img" />
       <header className="aq-head">
-        <h1>Aquarium</h1>
+        <h1>The Pond</h1>
         <p>Sea creatures in ASCII</p>
         <p className="tagline">Tap the water, or tap a creature to see its name.</p>
       </header>
-      <nav className="aq-panel" aria-label="Aquarium controls">
+      <nav className="aq-panel" aria-label="Pond controls">
         <div className="row">
           <span className="time" id="aq-time">--:--</span>
           <span className="phase" id="aq-phase">Day</span>
         </div>
+        <label className="label" htmlFor="aq-hour">Scrub the day</label>
+        <input id="aq-hour" type="range" min="0" max="23.99" step="0.05" defaultValue="12" />
         <span className="label">Light</span>
         <div className="btns" role="group" aria-label="Light">
           <button className="chip" type="button" data-mode="auto" aria-pressed="true">Auto</button>

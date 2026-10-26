@@ -114,6 +114,13 @@ body {
   text-transform: uppercase;
   color: var(--ink-soft);
 }
+.aq-panel input[type="range"] {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--maple);
+  touch-action: none;
+  cursor: ew-resize;
+}
 .aq-panel .btns {
   display: flex;
   gap: 5px;
@@ -187,10 +194,17 @@ body {
     width: max-content;
     max-width: calc(100vw - 32px);
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    justify-content: center;
     gap: 6px;
-    padding: 7px 8px;
-    border-radius: 999px;
+    padding: 9px 8px 7px;
+    border-radius: 20px;
+  }
+  .aq-panel input[type="range"] {
+    flex: 1 0 100%;
+    padding: 0 4px;
+    box-sizing: border-box;
   }
   .aq-panel .row,
   .aq-panel .label {

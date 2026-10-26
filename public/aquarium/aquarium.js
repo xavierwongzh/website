@@ -1093,9 +1093,8 @@
     }
   }
 
-  // Night from the visitor's clock: full day 07:00 to 17:00, dusk to 20:00, night until 05:00, dawn to 07:00.
-  function nightFromClock(d) {
-    const h = d.getHours() + d.getMinutes() / 60;
+  // Night from the hour of the day: full day 07:00 to 17:00, dusk to 20:00, night until 05:00, dawn to 07:00.
+  function nightFromHour(h) {
     if (h >= 7 && h < 17) return 0;
     if (h >= 17 && h < 20) return smooth(17, 20, h);
     if (h >= 5 && h < 7) return 1 - smooth(5, 7, h);
@@ -1111,23 +1110,30 @@
     const chips = [...document.querySelectorAll("[data-mode]")];
     const timeEl = document.getElementById("aq-time");
     const phaseEl = document.getElementById("aq-phase");
+    const slider = document.getElementById("aq-hour");
     const MODES = ["auto", "day", "night"];
     let mode = "auto";
     try { mode = localStorage.getItem("aq-mode") || "auto"; } catch (e) {}
     if (!MODES.includes(mode)) mode = "auto";
-    const targetNight = () => (mode === "day" ? 0 : mode === "night" ? 1 : nightFromClock(new Date()));
+    // A scrubbed hour overrides the clock until Auto is pressed again.
+    let scrub = null;
+    const nowHour = () => { const d = new Date(); return d.getHours() + d.getMinutes() / 60; };
+    const hour = () => (scrub !== null ? scrub : nowHour());
+    const targetNight = () => (mode === "day" ? 0 : mode === "night" ? 1 : nightFromHour(hour()));
     tank.night = targetNight();
     // The panel reads like Koi Valley's clock: the time, then what the light is doing.
     function phaseName() {
       if (mode !== "auto") return mode === "day" ? "Day" : "Night";
-      const h = new Date().getHours();
+      const h = hour();
       return h >= 5 && h < 7 ? "Dawn" : h >= 7 && h < 17 ? "Day" : h >= 17 && h < 20 ? "Dusk" : "Night";
     }
     function syncMode() {
-      for (const b of chips) b.setAttribute("aria-pressed", b.dataset.mode === mode ? "true" : "false");
-      const d = new Date();
-      if (timeEl) timeEl.textContent = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+      for (const b of chips) b.setAttribute("aria-pressed", b.dataset.mode === mode && scrub === null ? "true" : "false");
+      const h = mode === "auto" ? hour() : nowHour();
+      const hh = Math.floor(h) % 24, mm = Math.floor((h - Math.floor(h)) * 60);
+      if (timeEl) timeEl.textContent = String(hh).padStart(2, "0") + ":" + String(mm).padStart(2, "0");
       if (phaseEl) phaseEl.textContent = phaseName();
+      if (slider && document.activeElement !== slider) slider.value = String(h);
       document.documentElement.dataset.night = targetNight() > 0.5 ? "1" : "0";
     }
     syncMode();
@@ -1135,7 +1141,15 @@
     for (const b of chips) b.addEventListener("click", (e) => {
       e.stopPropagation();
       mode = b.dataset.mode;
+      scrub = null;
       try { localStorage.setItem("aq-mode", mode); } catch (err) {}
+      syncMode();
+    });
+    if (slider) slider.addEventListener("input", () => {
+      scrub = parseFloat(slider.value);
+      mode = "auto";
+      // Follow the slider straight away rather than easing, so scrubbing feels direct.
+      tank.night = targetNight();
       syncMode();
     });
 
