@@ -384,6 +384,7 @@
   }
   const moonJelly = {
     radial: true,
+    glow: MOON_INK.bell,
     reach: 1.2,
     shape(c) {
       return jelly(c, MOON_INK, 4, 12, 0.55, 1.1);
@@ -393,6 +394,7 @@
   /* Sea nettle: the same build with longer arms and tentacles. */
   const seaNettle = {
     radial: true,
+    glow: NETTLE_INK.bell,
     reach: 1.9,
     shape(c) {
       return jelly(c, NETTLE_INK, 4, 10, 1.3, 1.8);
@@ -402,6 +404,7 @@
   /* Blue jellyfish: the moon jelly's build in deep cornflower blue, with more tentacles. */
   const blueJelly = {
     radial: true,
+    glow: BLUE_INK.bell,
     reach: 1.4,
     shape(c) {
       return jelly(c, BLUE_INK, 4, 14, 0.7, 1.3);
@@ -678,11 +681,17 @@
           this.tb[i] = mix(this.tb[i], B, a);
           if (ink0) {
             // Glyph-drawn: the character carries the colour; it fades with depth, and holds up at night.
-            const k = mix(1, 0.8, night) * (1 - c.depth * 0.3);
+            // At night jellies glow: brighter glyphs that swell with each pulse, over a faint wash of their colour.
+            const beam = night * (0.75 + 0.35 * pulse(c.phase));
+            const k = mix(1, 0.8, night) * (1 - c.depth * 0.3) + 0.45 * beam;
+            const wash = 0.22 * beam * (1 - c.depth * 0.5);
+            this.tr[i] = mix(this.tr[i], ink0[0] * 0.5, wash);
+            this.tg[i] = mix(this.tg[i], ink0[1] * 0.5, wash);
+            this.tb[i] = mix(this.tb[i], ink0[2] * 0.5, wash);
             this.gl[i] = ch0;
-            this.gr[i] = mix(ink0[0] * k, water[0], fog * 0.6);
-            this.gg[i] = mix(ink0[1] * k, water[1], fog * 0.6);
-            this.gb[i] = mix(ink0[2] * k, water[2], fog * 0.6);
+            this.gr[i] = Math.min(255, mix(ink0[0] * k, water[0], fog * 0.6));
+            this.gg[i] = Math.min(255, mix(ink0[1] * k, water[1], fog * 0.6));
+            this.gb[i] = Math.min(255, mix(ink0[2] * k, water[2], fog * 0.6));
           } else if (cover < 0.5 && !ch0) {
             // Soft edge: a light glyph instead of a block.
             this.gl[i] = cover < 0.3 ? "." : ":";
@@ -794,6 +803,29 @@
       }
     }
 
+    // A small, soft glow around a jelly's bell after dark, breathing with its pulse.
+    halo(c) {
+      const { cols, rows, cw, ch } = this;
+      const col = c.sp.glow;
+      if (!col) return;
+      const R = c.L * 0.55;
+      const bx = c.x + Math.cos(c.heading) * c.L * 0.15, by = c.y + Math.sin(c.heading) * c.L * 0.15;
+      const amt = 0.34 * this.night * (0.7 + 0.3 * pulse(c.phase)) * (1 - c.depth * 0.5);
+      const q0 = Math.max(0, Math.floor((bx - R) / cw)), q1 = Math.min(cols - 1, Math.floor((bx + R) / cw));
+      const r0 = Math.max(0, Math.floor((by - R) / ch)), r1 = Math.min(rows - 1, Math.floor((by + R) / ch));
+      for (let r = r0; r <= r1; r++) {
+        for (let q = q0; q <= q1; q++) {
+          const d = Math.hypot((q + 0.5) * cw - bx, (r + 0.5) * ch - by) / R;
+          if (d >= 1) continue;
+          const f = amt * (1 - d * d) * (1 - d);
+          const i = r * cols + q;
+          this.tr[i] = mix(this.tr[i], col[0], f);
+          this.tg[i] = mix(this.tg[i], col[1], f);
+          this.tb[i] = mix(this.tb[i], col[2], f);
+        }
+      }
+    }
+
     frame(creatures, t, ripples) {
       this.shadow.fill(0);
       // Shadows on the sea floor for anything near the surface: the shallower, the further it falls.
@@ -806,6 +838,7 @@
       let rippled = false;
       for (const c of order) {
         if (!rippled && c.depth <= 0.02 && ripples) { this.drawRipples(ripples); rippled = true; }
+        if (this.night > 0.05 && c.sp.radial && !c.sp.surface) this.halo(c);
         this.draw(c, 0);
       }
       if (!rippled && ripples) this.drawRipples(ripples);
