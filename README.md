@@ -2,7 +2,7 @@
 
 An explorable isometric island that holds my portfolio. A mountain with a waterfall, a koi pond, autumn trees, a small runway and a few wandering foxes float in the sky, and each landmark opens a part of the site.
 
-**Live:** [xavierwongzh.vercel.app](https://xavierwongzh.vercel.app/) · **The Pond:** [/pond](https://xavierwongzh.vercel.app/pond) · **Classic site:** [/old](https://xavierwongzh.vercel.app/old)
+**Live:** [xavierwongzh.vercel.app](https://xavierwongzh.vercel.app/) · **The Pond:** [/pond](https://xavierwongzh.vercel.app/pond) · **The Forest:** [/forest](https://xavierwongzh.vercel.app/forest) · **Classic site:** [/old](https://xavierwongzh.vercel.app/old)
 
 ![Koi Valley on an autumn afternoon](docs/koi-valley.jpg)
 
@@ -16,6 +16,7 @@ An explorable isometric island that holds my portfolio. A mountain with a waterf
 | The lantern | Contact |
 | The koi pond | Projects (every koi is a project) |
 | The little pond by my desk | [The Pond](#the-pond), a side page |
+| The sacred cedar in the wood on the right | The Forest, a side page: spirits of light made of particles wander a misty wood |
 
 Tap a landmark or a koi to open its card. On a phone the card slides up from the bottom: swipe down to close it, and on a project page swipe right to go back to the list. Tap the mountain or empty ground to zoom back out.
 

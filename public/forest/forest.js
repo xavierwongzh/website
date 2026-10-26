@@ -25,7 +25,6 @@
   }
 
   const params = new URLSearchParams(location.search);
-  const LOOK = params.get("look") === "particles" ? "particles" : "glow";
 
   const canvas = document.getElementById("forest");
   const ctx = canvas.getContext("2d");
@@ -86,6 +85,14 @@
     b.lineTo(W + PAD, H + 2);
     b.closePath();
     b.fill();
+    // The ground on its own, for the snow in winter.
+    const snow = document.createElement("canvas");
+    snow.width = base.width;
+    snow.height = base.height;
+    const sn = snow.getContext("2d");
+    sn.setTransform(DPR, 0, 0, DPR, PAD * DPR, 0);
+    sn.fillStyle = "#fff";
+    sn.fill(new Path2D(`M${-PAD} ${H + 2}` + Array.from({ length: Math.ceil((W + PAD * 2) / 8) + 1 }, (_, k) => { const x = -PAD + k * 8; return `L${x} ${groundY(i, x)}`; }).join("") + `L${W + PAD} ${H + 2}Z`));
     // Trees
     const count = [16, 11, 7, 5, 2][i];
     const tw = U * [0.012, 0.02, 0.034, 0.056, 0.11][i];
@@ -171,7 +178,7 @@
     const tint = document.createElement("canvas");
     tint.width = base.width;
     tint.height = base.height;
-    return { base, rim, tint, trees, key: "" };
+    return { base, rim, snow, tint, trees, key: "" };
   }
 
   // Colour a layer's masks for the current light. Cheap enough to redo while the day is scrubbed.
@@ -179,7 +186,7 @@
     const ly = layers[i], d = depthOf(i);
     const col = mixc(L.tree, L.fog, d * 0.78);
     const rimCol = mixc(col, L.shaft, 0.1 + 0.12 * (1 - d) * (L.night ? 0.6 : 1));
-    const key = col.map(Math.round).join() + rimCol.map(Math.round).join();
+    const key = col.map(Math.round).join() + rimCol.map(Math.round).join() + season;
     if (ly.key === key) return;
     ly.key = key;
     const W2 = ly.tint.width, H2 = ly.tint.height;
@@ -209,6 +216,15 @@
     r.fillRect(0, 0, W2, H2);
     c.globalCompositeOperation = "source-over";
     c.drawImage(tmp, 0, 0);
+    if (season === "winter") {
+      r.globalCompositeOperation = "source-over";
+      r.clearRect(0, 0, W2, H2);
+      r.drawImage(ly.snow, 0, 0);
+      r.globalCompositeOperation = "source-in";
+      r.fillStyle = rgba(mixc(col, L.night ? [150, 170, 200] : [236, 242, 250], 0.55 - d * 0.25));
+      r.fillRect(0, 0, W2, H2);
+      c.drawImage(tmp, 0, 0);
+    }
   }
 
   /* ── glow sprites ─────────────────────────────────────────────────── */
@@ -346,7 +362,7 @@
     const perch = H * 0.4;
     spirits.push({ kind: "owl", layer: 3, x: tree.x + tree.lean * (groundY(3, tree.x) - perch) + tree.w * 1.6, size: 0.36, speed: 0, dir: -1, ph: 0, state: "perch", timer: 5, look: 0, graze: 0, stir: 0, particles: null, perch, tree });
   }
-  const unitOf = (s) => Math.min(H * 0.2, W * 0.24) * s.size * (s.layer === 2 ? 0.75 : 1);
+  const unitOf = (s) => Math.min(H * 0.2, W * (H > W * 1.3 ? 0.34 : 0.24)) * s.size * (s.layer === 2 ? 0.75 : 1);
   function spiritY(s) { return s.perch !== null ? s.perch : groundY(s.layer, s.x) + unitOf(s) * 0.02; }
 
   function stepSpirit(s, dt) {
@@ -362,6 +378,12 @@
       s.ph += dt * (s.kind === "rabbit" ? 5 : 2.4);
       if (s.x < W * 0.06 && s.dir < 0) s.dir = 1;
       if (s.x > W * 0.94 && s.dir > 0) s.dir = -1;
+      // Spirits on the same ground give each other room instead of walking through one another.
+      for (const o of spirits) {
+        if (o === s || o.layer !== s.layer || o.perch !== null) continue;
+        const gap = (o.x - s.x) * s.dir;
+        if (gap > 0 && gap < (u + unitOf(o)) * 0.75) { s.dir *= -1; break; }
+      }
       if (s.timer < 0) { s.state = "rest"; s.timer = 3 + Math.random() * 5; s.grazes = s.kind !== "rabbit" && Math.random() < 0.6; }
     } else {
       if (s.kind === "rabbit") s.ph += (Math.round(s.ph / Math.PI) * Math.PI - s.ph) * Math.min(1, dt * 4);
@@ -394,50 +416,7 @@
     c.closePath();
   }
 
-  function drawSpiritGlow(s, sh, t) {
-    const col = SPIRIT_COL[s.kind], str = L.spirit;
-    const breathe = 0.85 + 0.15 * Math.sin(t * 0.0012 + s.x * 0.01);
-    ctx.save();
-    // Soft halo: the same body, swollen and very faint, twice.
-    ctx.globalCompositeOperation = L.night ? "lighter" : "screen";
-    for (const [grow, a] of [[sh.u * 0.14, 0.035], [sh.u * 0.07, 0.06], [sh.u * 0.03, 0.09]]) {
-      ctx.fillStyle = rgba(col, a * str * breathe);
-      ctx.beginPath();
-      for (const q of sh.parts) capsulePath(ctx, q, grow);
-      ctx.fill();
-    }
-    // Translucent body, far limbs dimmer. Each group is one path so joints don't double up.
-    for (const far of [true, false]) {
-      ctx.fillStyle = rgba(col, (far ? 0.26 : 0.5) * str);
-      ctx.beginPath();
-      for (const q of sh.parts) if ((q.k < 1) === far) capsulePath(ctx, q, 0);
-      ctx.fill();
-    }
-    // Light lines flowing along the body, like markings drawn in light.
-    ctx.strokeStyle = rgba(mixc(col, [255, 255, 255], 0.6), 0.45 * str);
-    ctx.lineWidth = Math.max(0.8, sh.u * 0.008);
-    ctx.lineCap = "round";
-    for (const q of sh.parts) {
-      if (q.ra < sh.u * 0.04) continue;
-      const dx = q.bx - q.ax, dy = q.by - q.ay, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
-      for (const off of [-0.45, 0.1, 0.55]) {
-        const flow = (t * 0.00025 + off) % 1;
-        ctx.beginPath();
-        for (let v = 0; v <= 1.001; v += 0.1) {
-          const r = mix(q.ra, q.rb, v) * (off + 0.12 * Math.sin(v * 6 + t * 0.001 + off * 4));
-          const x = q.ax + dx * v + nx * r, y = q.ay + dy * v + ny * r;
-          v === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-        }
-        ctx.globalAlpha = 0.25 + 0.35 * Math.sin(flow * Math.PI);
-        ctx.stroke();
-      }
-    }
-    ctx.globalAlpha = 1;
-    for (const [x, y] of sh.eyes) dot(x, y, sh.u * 0.05, [255, 255, 255], 0.8 * str);
-    ctx.restore();
-  }
-
-  // Particle look: each spirit is a cloud of motes pinned to its limbs, which scatter at a touch and drift home.
+  // Each spirit is a cloud of motes pinned to its limbs, which scatter at a touch and drift home.
   function drawSpiritParticles(s, sh, t, dt) {
     const col = SPIRIT_COL[s.kind], str = L.spirit;
     if (!s.particles) {
@@ -487,7 +466,7 @@
   const motes = [];
   function placeMotes() {
     motes.length = 0;
-    const n = W < 700 ? 46 : 80;
+    const n = (W < 700 ? 46 : 80) * (season === "summer" ? 1.5 : 1);
     for (let k = 0; k < n; k++) motes.push({ x: Math.random() * W, y: H * (0.2 + Math.random() * 0.7), z: 0.4 + Math.random() * 0.6, ph: Math.random() * TAU, vx: 0, vy: 0, seed: Math.random() * 50 });
   }
   const flowers = [];
@@ -571,6 +550,9 @@
     last = t;
     stepClock(t, dt);
     L = lightAt(hour);
+    // Winter mist is colder and paler; summer air a touch greener.
+    if (season === "winter") { L.fog = mixc(L.fog, L.night ? [70, 90, 120] : [214, 224, 236], 0.4); L.skyLo = mixc(L.skyLo, L.fog, 0.3); }
+    else if (season === "summer") L.fog = mixc(L.fog, [120, 170, 120], L.night ? 0.08 : 0.15);
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.globalCompositeOperation = "source-over";
     ctx.globalAlpha = 1;
@@ -632,8 +614,7 @@
         if (s.layer !== i) continue;
         const sh = shapeOf(s);
         if (s.tree) drawPerch(s, sh);
-        if (LOOK === "particles") drawSpiritParticles(s, sh, t, dt);
-        else drawSpiritGlow(s, sh, t);
+        drawSpiritParticles(s, sh, t, dt);
       }
     }
     drawMotes(t, dt);
@@ -687,7 +668,7 @@
   function drawMotes(t, dt) {
     ctx.save();
     ctx.globalCompositeOperation = L.night ? "lighter" : "screen";
-    const col = L.night ? [210, 255, 200] : [255, 250, 225];
+    const col = !L.night ? [255, 250, 225] : season === "summer" ? [236, 255, 150] : season === "winter" ? [210, 228, 255] : [210, 255, 200];
     for (const m of motes) {
       const n = m.seed;
       m.vx += noise1(t * 0.0002 + n, 1) * 6 * dt;
@@ -810,7 +791,7 @@
     for (const b of seasonChips) b.setAttribute("aria-pressed", b.dataset.season === season ? "true" : "false");
     document.documentElement.dataset.season = season;
   }
-  for (const b of seasonChips) b.addEventListener("click", () => { season = b.dataset.season; syncSeason(); placeFall(); });
+  for (const b of seasonChips) b.addEventListener("click", () => { season = b.dataset.season; syncSeason(); placeFall(); placeMotes(); });
   syncSeason();
 
   /* ── setup ────────────────────────────────────────────────────────── */
@@ -838,6 +819,8 @@
 
   canvas.addEventListener("pointermove", (e) => { pointer.x = e.clientX; pointer.y = e.clientY; pointer.active = true; });
   canvas.addEventListener("pointerleave", () => { pointer.active = false; });
+  // A lifted finger leaves the motes to drift on their own again.
+  canvas.addEventListener("pointerup", (e) => { if (e.pointerType !== "mouse") pointer.active = false; });
   canvas.addEventListener("pointerdown", (e) => {
     pointer.x = e.clientX; pointer.y = e.clientY; pointer.active = true;
     let hitSpirit = null;
@@ -851,15 +834,9 @@
       hitSpirit.timer = 2.5;
       hitSpirit.grazes = false;
       const cap = document.getElementById("fo-caption");
-      if (cap) { cap.textContent = NAMES[hitSpirit.kind]; cap.classList.add("on"); clearTimeout(cap.t); cap.t = setTimeout(() => cap.classList.remove("on"), 2200); }
+      if (cap) { cap.textContent = NAMES[hitSpirit.kind]; cap.style.left = e.clientX + "px"; cap.style.top = e.clientY + "px"; cap.classList.add("on"); clearTimeout(cap.t); cap.t = setTimeout(() => cap.classList.remove("on"), 2200); }
     } else bloom(e.clientX, e.clientY);
   });
-
-  // For screenshots: ?bloom=x,y grows flowers at a spot straight away.
-  const bp = params.get("bloom");
-  if (bp) { const [bx, by] = bp.split(",").map(Number); bloom(bx * W, by * H); for (const f of flowers) f.born -= 3000; }
-  const sp = params.get("pointer");
-  if (sp) { const [px, py] = sp.split(",").map(Number); pointer.x = px * W; pointer.y = py * H; pointer.active = true; }
 
   requestAnimationFrame(frame);
 })();
