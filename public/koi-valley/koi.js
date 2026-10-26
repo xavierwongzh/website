@@ -572,6 +572,15 @@ function makeBlobs(t) {
   else if (t.kind === "bare") { for (let q = 0; q < 4; q++) B.push([(rnd() - 0.5) * 0.36, 0.5 + rnd() * 0.2, 0.03, pickC(TREE_COL.maple)]); }
   return B;
 }
+function makeTree(x, y, h) {
+  const kind = pickKind(h);
+  const t = { i: x, j: y, h, kind, s: (kind === "bush" ? 0.8 : 0.72) + rnd() * 0.55, lean: (rnd() - 0.5) * 0.1, layers: 3 + (rnd() < 0.4 ? 1 : 0) };
+  t.pcol = pickC(kind === "larch" ? TREE_COL.larch : TREE_COL.pine);
+  t.blobs = makeBlobs(t);
+  t.pcol0 = t.pcol; for (const b of t.blobs) b[5] = b[3];
+  t.crown = (t.blobs.length ? t.blobs.reduce((a, b) => a + b[1], 0) / t.blobs.length : 0.5) * t.s * 2.78;
+  return t;
+}
 const trees = [];
 for (let n = 0; n < 3000 && trees.length < 84; n++) {
   const x = rnd() * N, y = rnd() * N;
@@ -584,19 +593,22 @@ for (let n = 0; n < 3000 && trees.length < 84; n++) {
   const forest = Math.sin(x * 0.7 + 1.3) * Math.cos(y * 0.6 - 0.4) + 0.4 * Math.sin(x * 1.9 + y * 1.1);
   if (forest < 0 && rnd() < 0.9) continue;
   if (trees.some(t => Math.hypot(t.i - x, t.j - y) < 0.62)) continue;
-  const kind = pickKind(h);
-  const t = { i: x, j: y, h, kind, s: (kind === "bush" ? 0.8 : 0.72) + rnd() * 0.55, lean: (rnd() - 0.5) * 0.1, layers: 3 + (rnd() < 0.4 ? 1 : 0) };
-  t.pcol = pickC(kind === "larch" ? TREE_COL.larch : TREE_COL.pine);
-  t.blobs = makeBlobs(t);
-  t.pcol0 = t.pcol; for (const b of t.blobs) b[5] = b[3];
-  t.crown = (t.blobs.length ? t.blobs.reduce((a, b) => a + b[1], 0) / t.blobs.length : 0.5) * t.s * 2.78;
-  trees.push(t);
+  trees.push(makeTree(x, y, h));
 }
-// The sacred tree in the wood on the right: an old cedar with a straw rope and paper streamers round its trunk.
-// Tapping it opens The Forest. The trees that stood where it grows step aside, the rest of the wood stays as it was.
-const SACRED = { x: 12.25, y: 4.05 };
-SACRED.h = hf(SACRED.x, SACRED.y);
-for (let k = trees.length - 1; k >= 0; k--) if (Math.hypot(trees[k].i - SACRED.x, trees[k].j - SACRED.y) < 1.4) trees.splice(k, 1);
+// A thick grove in the wood on the right, where The Forest begins: extra trees packed in among the ones already there.
+// Added after the rest of the wood is made, so every other tree keeps its place.
+const GROVE = { x: 12.25, y: 4.05 };
+GROVE.h = hf(GROVE.x, GROVE.y);
+for (let n = 0, added = 0; n < 600 && added < 14; n++) {
+  const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * 1.35, x = GROVE.x + Math.cos(a) * r, y = GROVE.y + Math.sin(a) * r;
+  if (!insideIsland(x, y, 0.93) || riverInfo(x, y)[0] < 0.75 || MARKS.some(m => Math.hypot(m.i + 0.5 - x, m.j + 0.5 - y) < 1.35)) continue;
+  const h = hf(x, y), gx = hf(x + 0.1, y) - h, gy = hf(x, y + 0.1) - h;
+  if (Math.hypot(gx, gy) * 10 > 1.9 || trees.some(t => Math.hypot(t.i - x, t.j - y) < 0.42)) continue;
+  const t = makeTree(x, y, h);
+  // no bushes here, so the grove reads as tall woods
+  if (t.kind === "bush") continue;
+  trees.push(t); added++;
+}
 
 // per-season foliage; autumn keeps the colours each tree was born with
 const SEASON_TREES = {
@@ -1128,55 +1140,6 @@ function goPond() {
   if (!live) q.push("hour=" + hourNow.toFixed(2));
   location.href = "/pond" + (q.length ? "?" + q.join("&") : "");
 }
-function drawSacred(t) {
-  const { x, y, h } = SACRED, fx = sinY, fy = cosY, rx = cosY, ry = -sinY;
-  groundShadow(x + 0.06, y + 0.06, h, 0.5);
-  // trunk: eight-sided and tapering, reddish cedar bark
-  const n = 8, zt = h + 2.2, rAt = z => lerp(0.15, 0.06, (z - h) / 2.2);
-  const ring = (z) => Array.from({ length: n }, (_, m) => { const a = m / n * Math.PI * 2 + 0.2, r = rAt(z); return [x + Math.cos(a) * r, y + Math.sin(a) * r, z]; });
-  const B = ring(h - 0.02), T = ring(zt), tris = [];
-  for (let q = 0; q < n; q++) { const q1 = (q + 1) % n; tris.push([B[q], B[q1], T[q1]], [B[q], T[q1], T[q]]); }
-  solid(tris, [x, y, (h + zt) / 2], [118, 72, 50], 1);
-  // the shimenawa: a thick straw rope around the trunk, only its front half shows
-  const zr = h + 0.6, rr = rAt(zr) + 0.025, px = Math.max(1.5, TW * cam.zoom * 0.045);
-  const front = Array.from({ length: 17 }, (_, m) => { const a = Math.atan2(fy, fx) - Math.PI / 2 - 0.15 + m / 16 * (Math.PI + 0.3); return P(x + Math.cos(a) * rr, y + Math.sin(a) * rr, zr); });
-  ctx.lineCap = "round"; ctx.lineJoin = "round";
-  ctx.strokeStyle = rgb(lit([150, 124, 72])); ctx.lineWidth = px * 1.25;
-  ctx.beginPath(); front.forEach((q, m) => m ? ctx.lineTo(q[0], q[1] + px * 0.12) : ctx.moveTo(q[0], q[1] + px * 0.12)); ctx.stroke();
-  ctx.strokeStyle = rgb(lit([214, 188, 124])); ctx.lineWidth = px;
-  ctx.beginPath(); front.forEach((q, m) => m ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke();
-  // twists in the rope
-  ctx.strokeStyle = rgb(lit([160, 132, 78])); ctx.lineWidth = Math.max(0.8, px * 0.18);
-  for (let m = 1; m < 16; m += 2) { const q = front[m]; ctx.beginPath(); ctx.moveTo(q[0] - px * 0.25, q[1] - px * 0.4); ctx.lineTo(q[0] + px * 0.25, q[1] + px * 0.4); ctx.stroke(); }
-  // shide: zigzag paper streamers hanging from the front of the rope
-  for (const side of [-0.55, 0.55]) {
-    const ox = x + fx * rr + rx * rr * side, oy = y + fy * rr + ry * rr * side, w = 0.035, pts = [];
-    for (let m = 0; m <= 4; m++) { const z = zr - 0.03 - m * 0.06, o = (m % 2 ? 1 : -1) * w * 0.6; pts.push([ox + rx * (o - w * 0.5), oy + ry * (o - w * 0.5), z]); }
-    const right = pts.map(([a, b, z]) => [a + rx * w, b + ry * w, z]);
-    poly([...pts, ...right.reverse()].map(q => P(...q)), rgb(lit([248, 246, 240])));
-  }
-  // the crown: deep evergreen tiers, snow-capped in winter
-  const col = [40, 76, 54], L = 5, a0 = 0.7;
-  for (let q = 0; q < L; q++) {
-    const z0 = h + 1.5 + q * 0.5, z1 = z0 + 0.95, w = 0.66 - q * 0.1;
-    const lc = SEASON === "winter" ? mix(col, [236, 240, 246], q === L - 1 ? 0.8 : 0.3) : col;
-    const apex = [x, y, z1], rim = Array.from({ length: 9 }, (_, m) => { const a = a0 + q * 0.5 + m / 9 * Math.PI * 2, j = 0.86 + 0.26 * hash(x * 3 + m, y + q); return [x + Math.cos(a) * w * j, y + Math.sin(a) * w * j, z0 - 0.06]; });
-    const c = [x, y, z0 + 0.0001], tt = [];
-    for (let m = 0; m < 9; m++) tt.push([apex, rim[m], rim[(m + 1) % 9]], [c, rim[(m + 1) % 9], rim[m]]);
-    solid(tt, [x, y, (z0 + z1) / 2], lc, 1.02);
-  }
-  // after dark a few small spirits of light drift round the tree
-  const night = clamp((0.75 - S.light) / 0.4, 0, 1);
-  if (night > 0 && !occluded(x, y, h + 1.2)) {
-    ctx.save(); ctx.globalCompositeOperation = "lighter";
-    for (let m = 0; m < 3; m++) {
-      const a = t * 0.00018 * (m % 2 ? 1 : -1) + m * 2.1, r = 0.45 + 0.12 * m, z = h + 0.6 + m * 0.45 + Math.sin(t * 0.0007 + m) * 0.12;
-      const [gx, gy] = P(x + Math.cos(a) * r, y + Math.sin(a) * r, z);
-      glow(gx, gy, TW * cam.zoom * 0.1, [190, 236, 255], 0.35 * night);
-    }
-    ctx.restore();
-  }
-}
 // The Forest works out the same season and the live hour on its own, like The Pond.
 function goForest() {
   const q = [];
@@ -1184,7 +1147,7 @@ function goForest() {
   if (!live) q.push("hour=" + hourNow.toFixed(2));
   location.href = "/forest" + (q.length ? "?" + q.join("&") : "");
 }
-function sacredAt(x, y) { const c = P(SACRED.x, SACRED.y, SACRED.h + 1.6); return Math.hypot(c[0] - x, c[1] - y) < TW * cam.zoom * 0.6 && !occluded(SACRED.x, SACRED.y, SACRED.h + 1.6); }
+function groveAt(x, y) { const c = P(GROVE.x, GROVE.y, GROVE.h + 0.8); return Math.hypot(c[0] - x, c[1] - y) < TW * cam.zoom * 0.9 && !occluded(GROVE.x, GROVE.y, GROVE.h + 1); }
 function miniAt(x, y) { const c = P(MINI.x, MINI.y, MINI.h); return Math.hypot(c[0] - x, c[1] - y) < TW * cam.zoom * 0.45 && !occluded(MINI.x, MINI.y, MINI.h + 0.2); }
 function caveAt(x, y) { return CAVE.sx && Math.hypot(CAVE.sx - x, CAVE.sy - y) < TW * 0.5 && !occluded(...CW([0, 0, 0.6])); }
 function visitCave() {
@@ -1913,7 +1876,6 @@ function renderScene(t) {
   items.push([Math.max(depthKey(TOWER[0], TOWER[1], RUNWAY.h) + bias, rk + 0.01), drawTower]); // stands beside the runway, so never under it
   items.push([frontKey([[-0.6, -0.55], [0.8, -0.55], [0.8, 0.55], [-0.6, 0.55]].map(([u, v]) => CW([u, v, 0])), CAVE.h) + 0.05, () => drawMe(t)]);
   items.push([frontKey(MINI_RIM, MINI.h) + 0.05, () => drawMiniPond(t)]);
-  items.push([depthKey(SACRED.x, SACRED.y, SACRED.h) + bias, () => drawSacred(t)]);
   for (const s2 of STONES) items.push([depthKey(s2.x, s2.y, s2.h) + 0.25, () => drawStone(s2)]);
   items.push([depthKey(DOCK.x + DOCK.ax * 0.4, DOCK.y + DOCK.ay * 0.4, WATER_H) + 0.35, drawDockParts]);
   const zk = frontKey([[ZEN.x0 - 0.1, ZEN.y0 - 0.1], [ZEN.x1 + 0.1, ZEN.y0 - 0.1], [ZEN.x1 + 0.1, ZEN.y1 + 0.1], [ZEN.x0 - 0.1, ZEN.y1 + 0.1]], ZEN.h) + 0.05;
@@ -1934,11 +1896,11 @@ function renderScene(t) {
 
 // ---------- tags (HTML buttons over the scene) ----------
 const tagsEl = document.getElementById("tags");
-const TAGS = [...MARKS.map(m => ({ key: m.key, label: m.label, m })), { key: "projects", label: "Projects", pond: true }, { key: "pond", label: "The Pond", mini: true }, { key: "forest", label: "The Forest", sacred: true }];
+const TAGS = [...MARKS.map(m => ({ key: m.key, label: m.label, m })), { key: "projects", label: "Projects", pond: true }, { key: "pond", label: "The Pond", mini: true }, { key: "forest", label: "The Forest", grove: true }];
 for (const t of TAGS) {
   const b = document.createElement("button"); b.className = "tag-btn"; b.textContent = t.label; b.type = "button";
   // The Pond is its own page with its own root layout, so a full page load
-  b.addEventListener("click", e => { e.stopPropagation(); if (t.mini) goPond(); else if (t.sacred) goForest(); else openPlace(t.key); });
+  b.addEventListener("click", e => { e.stopPropagation(); if (t.mini) goPond(); else if (t.grove) goForest(); else openPlace(t.key); });
   t.el = b; tagsEl.appendChild(b);
 }
 function occluded(x, y, h) {
@@ -1959,10 +1921,10 @@ function placeTags() {
       // over the little pond in front of my desk
       [x, y] = P(MINI.x, MINI.y, MINI.h + 0.9);
       hidden = occluded(MINI.x, MINI.y, MINI.h + 0.2);
-    } else if (t.sacred) {
-      // above the top of the sacred tree
-      [x, y] = P(SACRED.x, SACRED.y, SACRED.h + 4.7);
-      hidden = occluded(SACRED.x, SACRED.y, SACRED.h + 1.6);
+    } else if (t.grove) {
+      // above the thick grove in the wood on the right
+      [x, y] = P(GROVE.x, GROVE.y, GROVE.h + 3.3);
+      hidden = occluded(GROVE.x, GROVE.y, GROVE.h + 1);
     } else if (t.m.topW) {
       [x, y] = P(...t.m.topW);
       hidden = occluded(t.m.i + 0.5, t.m.j + 0.5, t.m.h + 1.1);
@@ -2082,7 +2044,7 @@ function tap(x, y) {
   if (planeAt(x, y)) return launchPlane();
   if (caveAt(x, y)) return visitCave();
   if (miniAt(x, y)) return goPond();
-  if (sacredAt(x, y)) return goForest();
+  if (groveAt(x, y)) return goForest();
   for (const fx of foxes) if (fx.sx && Math.hypot(fx.sx - x, fx.sy - y) < TW * 0.6) { fx.hop = 1; fx.scared = 1.6; foxTarget(fx, true); return; }
   const f = koiAt(x, y); if (f) return openProject(f.p.id);
   const m = markAt(x, y); if (m) return openPlace(m.key);

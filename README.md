@@ -16,7 +16,7 @@ An explorable isometric island that holds my portfolio. A mountain with a waterf
 | The lantern | Contact |
 | The koi pond | Projects (every koi is a project) |
 | The little pond by my desk | [The Pond](#the-pond), a side page |
-| The sacred cedar in the wood on the right | The Forest, a side page: spirits of light made of particles wander a misty wood |
+| The thick grove in the wood on the right | The Forest, a side page: spirits of light made of particles wander a misty wood |
 
 Tap a landmark or a koi to open its card. On a phone the card slides up from the bottom: swipe down to close it, and on a project page swipe right to go back to the list. Tap the mountain or empty ground to zoom back out.
 
