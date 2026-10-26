@@ -793,7 +793,34 @@
       F.px = -bty; F.py = btx;
     }
 
+    // Dawn and dusk: the pond mirrors the low sky, pink and orange, overhead colour at the top of the screen
+    // fading to the glow of the horizon at the bottom, like Koi Valley's sky behind the island.
+    sunGlow() {
+      const a = (this.warm || 0) * 0.5;
+      if (a < 0.01) return;
+      const lo = this.warmCol, hi = this.warmTop || lo;
+      const { cols, rows } = this;
+      for (let r = 0; r < rows; r++) {
+        const c = mixc(hi, lo, smooth(0, 1, r / rows));
+        for (let q = 0; q < cols; q++) {
+          const i = r * cols + q;
+          // Keep shapes readable: blend towards the sky but hold on to some of each tile's own shading.
+          const lum = (this.tr[i] + this.tg[i] + this.tb[i]) / 380;
+          const k = 0.75 + 0.5 * lum;
+          this.tr[i] = mix(this.tr[i], c[0] * k, a);
+          this.tg[i] = mix(this.tg[i], c[1] * k, a);
+          this.tb[i] = mix(this.tb[i], c[2] * k, a);
+          if (this.gl[i]) {
+            this.gr[i] = Math.min(255, mix(this.gr[i], c[0] * 1.15, a * 0.5));
+            this.gg[i] = Math.min(255, mix(this.gg[i], c[1] * 1.15, a * 0.5));
+            this.gb[i] = Math.min(255, mix(this.gb[i], c[2] * 1.15, a * 0.5));
+          }
+        }
+      }
+    }
+
     present() {
+      this.sunGlow();
       const { ctx, cols, rows, cw, ch, dpr, img } = this;
       const d = img.data;
       for (let i = 0, n = cols * rows; i < n; i++) {
@@ -1035,6 +1062,8 @@
       this.mode = "auto";
       this.night = 0;
       this.season = "summer";
+      this.warm = 0;
+      this.warmCol = [255, 160, 120];
       this.flakes = [];
       this.rainT = 0;
       this.resize();
@@ -1267,6 +1296,9 @@
     render() {
       this.renderer.night = this.night;
       this.renderer.season = this.season;
+      this.renderer.warm = this.warm;
+      this.renderer.warmCol = this.warmCol;
+      this.renderer.warmTop = this.warmTop || this.warmCol;
       this.renderer.frame(this.creatures, this.t, this.ripples, this.flakes);
     }
   }
@@ -1278,12 +1310,30 @@
     return ["winter", "winter", "spring", "spring", "spring", "summer", "summer", "summer", "autumn", "autumn", "autumn", "winter"][m];
   }
 
-  // Night from the hour of the day: full day 07:00 to 17:00, dusk to 20:00, night until 05:00, dawn to 07:00.
-  function nightFromHour(h) {
-    if (h >= 7 && h < 17) return 0;
-    if (h >= 17 && h < 20) return smooth(17, 20, h);
-    if (h >= 5 && h < 7) return 1 - smooth(5, 7, h);
-    return 1;
+  // The light follows Koi Valley's sky: the same keyframes, so dawn and dusk turn the water pink and orange
+  // at the same hours the island's sky does. [hour, sky low on the horizon, light]
+  // [hour, sky low on the horizon, sky overhead, light]
+  const SKY = [
+    [0, [20, 28, 60], [7, 11, 31], 0.4], [5.0, [42, 42, 85], [12, 18, 48], 0.42], [6.0, [192, 122, 138], [44, 58, 114], 0.55],
+    [7.0, [246, 192, 138], [90, 134, 192], 0.82], [9.5, [213, 236, 245], [106, 174, 230], 0.98], [13, [233, 246, 251], [79, 163, 234], 1.08],
+    [16.5, [245, 220, 170], [107, 159, 210], 1.0], [18.2, [243, 148, 98], [71, 90, 150], 0.8], [19.2, [138, 74, 106], [38, 42, 90], 0.52],
+    [20.3, [39, 42, 88], [14, 20, 52], 0.44], [24, [20, 28, 60], [7, 11, 31], 0.4],
+  ];
+  function skyAt(h) {
+    let i = 0;
+    while (i < SKY.length - 2 && h >= SKY[i + 1][0]) i++;
+    const a = SKY[i], b = SKY[i + 1], t = smooth(0, 1, (h - a[0]) / (b[0] - a[0]));
+    const light = mix(a[3], b[3], t);
+    // Warmth: how far the horizon colour leans red over blue, strongest around sunrise and sunset.
+    const col = mixc(a[1], b[1], t), top = mixc(a[2], b[2], t);
+    const warm = clamp((col[0] - col[2]) / 50, 0, 1) * clamp((1.02 - light) / 0.22, 0, 1);
+    return { night: clamp((0.98 - light) / 0.54, 0, 1), warm, col, top };
+  }
+  // Same names as Koi Valley's clock.
+  function phaseOf(h) {
+    if (h < 5) return "Deep night"; if (h < 6.3) return "Before dawn"; if (h < 8) return "Sunrise";
+    if (h < 11.5) return "Morning"; if (h < 14.5) return "Midday"; if (h < 17.3) return "Afternoon";
+    if (h < 18.9) return "Golden hour"; if (h < 20.2) return "Dusk"; return "Night";
   }
 
   function boot() {
@@ -1322,13 +1372,14 @@
     });
     const nowHour = () => { const d = new Date(); return d.getHours() + d.getMinutes() / 60; };
     const hour = () => (scrub !== null ? scrub : nowHour());
-    const targetNight = () => (mode === "day" ? 0 : mode === "night" ? 1 : nightFromHour(hour()));
+    const sky = () => (mode === "day" ? skyAt(12) : mode === "night" ? skyAt(23) : skyAt(hour()));
+    const targetNight = () => sky().night;
     tank.night = targetNight();
+    tank.warm = sky().warm; tank.warmCol = sky().col; tank.warmTop = sky().top;
     // The panel reads like Koi Valley's clock: the time, then what the light is doing.
     function phaseName() {
       if (mode !== "auto") return mode === "day" ? "Day" : "Night";
-      const h = hour();
-      return h >= 5 && h < 7 ? "Dawn" : h >= 7 && h < 17 ? "Day" : h >= 17 && h < 20 ? "Dusk" : "Night";
+      return phaseOf(hour());
     }
     function syncMode() {
       for (const b of chips) b.setAttribute("aria-pressed", b.dataset.mode === mode && scrub === null ? "true" : "false");
@@ -1352,7 +1403,8 @@
       scrub = parseFloat(slider.value);
       mode = "auto";
       // Follow the slider straight away rather than easing, so scrubbing feels direct.
-      tank.night = targetNight();
+      const sk = sky();
+      tank.night = sk.night; tank.warm = sk.warm; tank.warmCol = sk.col; tank.warmTop = sk.top;
       syncMode();
     });
 
@@ -1395,7 +1447,10 @@
       if (acc < 1 / 31) return;
       const step = acc * (reduced.matches ? 0.35 : 1);
       acc = 0;
-      tank.night += clamp(targetNight() - tank.night, -step * 0.8, step * 0.8);
+      const sk = sky();
+      tank.night += clamp(sk.night - tank.night, -step * 0.8, step * 0.8);
+      tank.warm += clamp(sk.warm - tank.warm, -step * 0.8, step * 0.8);
+      tank.warmCol = sk.col; tank.warmTop = sk.top;
       tank.step(step);
       tank.render();
     }
