@@ -1831,11 +1831,11 @@ function renderScene(t) {
 
 // ---------- tags (HTML buttons over the scene) ----------
 const tagsEl = document.getElementById("tags");
-const TAGS = [...MARKS.map(m => ({ key: m.key, label: m.label, m })), { key: "projects", label: "Projects", pond: true }, { key: "pond", label: "The Pond", stack: true }];
+const TAGS = [...MARKS.map(m => ({ key: m.key, label: m.label, m })), { key: "projects", label: "Projects", pond: true }, { key: "pond", label: "The Pond", stream: true }];
 for (const t of TAGS) {
-  const b = document.createElement("button"); b.className = t.stack ? "tag-btn stacked" : "tag-btn"; b.textContent = t.label; b.type = "button";
+  const b = document.createElement("button"); b.className = "tag-btn"; b.textContent = t.label; b.type = "button";
   // The Pond is its own page with its own root layout, so a full page load
-  b.addEventListener("click", e => { e.stopPropagation(); if (t.stack) location.href = "/pond"; else openPlace(t.key); });
+  b.addEventListener("click", e => { e.stopPropagation(); if (t.stream) location.href = "/pond"; else openPlace(t.key); });
   t.el = b; tagsEl.appendChild(b);
 }
 function occluded(x, y, h) {
@@ -1852,11 +1852,11 @@ function placeTags() {
     if (t.pond) {
       [x, y] = P(LAKE.cx, LAKE.cy, WATER_H + 1.1);
       hidden = occluded(LAKE.cx, LAKE.cy, WATER_H + 0.2);
-    } else if (t.stack) {
-      // stacked straight above the Projects label over the pond
-      const below = TAGS.find(q => q.pond);
-      x = below.x; y = below.y - below.el.offsetHeight - 8;
-      hidden = below.far;
+    } else if (t.stream) {
+      // up the stream that feeds the koi pond, on its own above the water
+      const [sx, sy] = RIVER_PATH[1], sh = hf(sx, sy);
+      [x, y] = P(sx, sy, sh + 1.1);
+      hidden = occluded(sx, sy, sh + 0.3);
     } else if (t.m.topW) {
       [x, y] = P(...t.m.topW);
       hidden = occluded(t.m.i + 0.5, t.m.j + 0.5, t.m.h + 1.1);
