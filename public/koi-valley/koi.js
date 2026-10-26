@@ -1116,8 +1116,13 @@ function drawMiniPond(t) {
     if (ice) rbox(st.x, st.y, Math.cos(st.a), Math.sin(st.a), MINI.h, -st.s * 0.8, st.s * 0.8, -st.s * 0.65, st.s * 0.65, st.z, st.z + 0.012, [240, 243, 248]);
   }
 }
-// The Pond opens in the same season, and at the same hour if the day is being scrubbed
-function goPond() { location.href = "/pond?season=" + SEASON + (live ? "" : "&hour=" + hourNow.toFixed(2)); }
+// The Pond works out the same season and the live hour on its own, so the URL only carries a hand-picked season or a scrubbed hour.
+function goPond() {
+  const q = [];
+  if (SEASON !== seasonFromDate()) q.push("season=" + SEASON);
+  if (!live) q.push("hour=" + hourNow.toFixed(2));
+  location.href = "/pond" + (q.length ? "?" + q.join("&") : "");
+}
 function miniAt(x, y) { const c = P(MINI.x, MINI.y, MINI.h); return Math.hypot(c[0] - x, c[1] - y) < TW * cam.zoom * 0.45 && !occluded(MINI.x, MINI.y, MINI.h + 0.2); }
 function caveAt(x, y) { return CAVE.sx && Math.hypot(CAVE.sx - x, CAVE.sy - y) < TW * 0.5 && !occluded(...CW([0, 0, 0.6])); }
 function visitCave() {

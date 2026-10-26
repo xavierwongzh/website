@@ -37,7 +37,7 @@ There are some small things to find as well. The plane on runway 03 takes off wh
 
 [The Pond](https://xavierwongzh.vercel.app/pond) is a fun side page: a pond seen from above, with every creature drawn in shaded ASCII characters. A whale shark, two hammerheads, a stingray, a manta, a sea turtle, a pod of dolphins, jellyfish that glow softly at night and schools of golden sardines swim between lotus pads. Tap the water to make a ripple, or tap a creature to see its name.
 
-It shares Koi Valley's clock and seasons. The "Scrub the day" slider works the same way and drifts back to the live time after you let go. In winter the pond is iced over and a tap cracks it (the crack heals), autumn drops maple leaves and spring brings rain. Entering from the island passes the season and the scrubbed hour along (`/pond?season=winter&hour=21`), so both places look the same. `/aquarium` redirects here.
+It shares Koi Valley's clock and seasons. The "Scrub the day" slider works the same way and drifts back to the live time after you let go. In winter the pond is iced over and a tap cracks it (the crack heals), autumn drops maple leaves and spring brings rain. Entering from the island carries over a hand-picked season or a scrubbed hour (`/pond?season=winter&hour=21`), so both places look the same; otherwise the URL is just `/pond`. `/aquarium` redirects here.
 
 ## Running it locally
 
