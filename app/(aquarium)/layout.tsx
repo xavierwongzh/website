@@ -3,11 +3,31 @@ import { Analytics } from "@vercel/analytics/react";
 import { SITE_URL } from "@/lib/siteMetadata";
 import "./aquarium.css";
 
+const title = "The Pond | Xavier Wong";
+const description =
+  "A pond drawn entirely in ASCII characters. A whale shark, hammerheads, a manta, a stingray, a sea turtle, dolphins and sardine schools swim past lotus pads, and the jellyfish glow at night. It follows the seasons and freezes over in winter.";
+// a midday shot of the tank, shown when the /pond link is shared
+const image = { url: "/pond-og.png", width: 1200, height: 630, alt: "The Pond: a whale shark, a hammerhead, a manta and a sea turtle drawn in ASCII characters" };
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "The Pond | Xavier Wong",
-  description: "The Pond, in ASCII: hammerheads, a whale shark, dolphins, a sea turtle, rays, jellyfish and lotus pads, drawn in characters.",
-  openGraph: { images: [{ url: "/og.png", width: 1200, height: 630 }] },
+  title,
+  description,
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "/pond",
+    siteName: "Xavier Wong Portfolio",
+    title,
+    description,
+    images: [image],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+    images: [image.url],
+  },
 };
 
 export const viewport: Viewport = {
