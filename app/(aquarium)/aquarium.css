@@ -1,0 +1,88 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0b2a33;
+  color: #e6f2f2;
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#aquarium {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.aq-head {
+  position: fixed;
+  top: max(18px, env(safe-area-inset-top));
+  left: max(20px, env(safe-area-inset-left));
+  pointer-events: none;
+  text-shadow: 0 1px 6px rgba(0, 20, 30, 0.6);
+}
+.aq-head h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.aq-head p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.aq-nav {
+  position: fixed;
+  top: max(18px, env(safe-area-inset-top));
+  right: max(20px, env(safe-area-inset-right));
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.aq-nav a,
+.aq-nav button {
+  font: 600 12px "IBM Plex Mono", ui-monospace, monospace;
+  color: #e6f2f2;
+  background: rgba(4, 22, 30, 0.45);
+  border: 1px solid rgba(220, 245, 245, 0.22);
+  border-radius: 999px;
+  padding: 7px 13px;
+  text-decoration: none;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.aq-nav a:hover,
+.aq-nav button:hover {
+  border-color: rgba(220, 245, 245, 0.5);
+}
+
+#aq-caption {
+  position: fixed;
+  transform: translate(-50%, -150%);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(4, 22, 30, 0.55);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  white-space: nowrap;
+}
+#aq-caption.on {
+  opacity: 1;
+}
+
+@media (max-width: 600px) {
+  .aq-head p {
+    display: none;
+  }
+}
