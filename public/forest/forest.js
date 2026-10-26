@@ -255,6 +255,8 @@
 
   // A part runs from a to b with radius ra..rb, in body units (ground at y = 0, facing +x).
   const part = (ax, ay, bx, by, ra, rb, k) => ({ ax, ay, bx, by, ra, rb, k: k === undefined ? 1 : k });
+  // A fine line of light drawn over the body: markings, feather edges, the line of a back.
+  const line = (ax, ay, bx, by, k) => ({ ax, ay, bx, by, ra: 0.012, rb: 0.012, k: k === undefined ? 1 : k, d: 1 });
   const rot = (x, y, cx, cy, a) => { const c = Math.cos(a), s = Math.sin(a); return [cx + (x - cx) * c - (y - cy) * s, cy + (x - cx) * s + (y - cy) * c]; };
   function leg(out, hx, hy, ph, len, far, thick) {
     const sw = Math.sin(ph) * 0.32, lift = Math.max(0, Math.cos(ph)) * 0.08;
@@ -273,6 +275,8 @@
       leg(p, 0.26, -0.66 + bob, ph, 0.66, false, 0.05);
       leg(p, -0.3, -0.68 + bob, ph + Math.PI, 0.68, false, 0.055);
       p.push(part(-0.52, -0.92 + bob, -0.6, -0.84 + bob, 0.05, 0.03));
+      // A pale rump patch.
+      p.push(part(-0.5, -0.86 + bob, -0.44, -0.74 + bob, 0.06, 0.05, 0.8));
       // Neck and head turn down together to graze.
       const g = graze * 1.15, nx = 0.3, ny = -0.86 + bob;
       const R = (x, y) => rot(x, y + bob, nx, ny, g);
@@ -280,18 +284,25 @@
       p.push(part(a, b, c, d, 0.12, 0.075));
       const [h1, h2] = R(0.46, -1.27), [s1, s2] = R(0.66 - look * 0.06, -1.2);
       p.push(part(h1, h2, s1, s2, 0.085, 0.045));
-      const [e1, e2] = R(0.45, -1.32), [e3, e4] = R(0.35, -1.42);
-      p.push(part(e1, e2, e3, e4, 0.03, 0.01));
-      // Antlers: two beams with tines.
-      for (const [dx, k] of [[0.02, 1], [-0.04, 0.6]]) {
-        const pts = [[0.48 + dx, -1.33], [0.42 + dx, -1.6], [0.36 + dx, -1.84], [0.4 + dx, -2]];
+      // A ruff of longer hair on the throat, the line of the neck and jaw, and a dark-tipped nose.
+      const [r1, r2] = R(0.36, -0.98), [r3, r4] = R(0.48, -1.16);
+      p.push(part(r1, r2, r3, r4, 0.07, 0.04, 0.8));
+      const [j1, j2] = R(0.47, -1.2), [j3, j4] = R(0.66 - look * 0.06, -1.17);
+      p.push(line(j1, j2, j3, j4));
+      const [e1, e2] = R(0.45, -1.32), [e3, e4] = R(0.33, -1.44);
+      p.push(part(e1, e2, e3, e4, 0.035, 0.012));
+      const [f1, f2] = R(0.47, -1.33), [f3, f4] = R(0.42, -1.47);
+      p.push(part(f1, f2, f3, f4, 0.03, 0.01, 0.6));
+      // Antlers: two beams sweeping up and back, each with a brow tine and tines reaching forward.
+      for (const [dx, dy, k] of [[0, 0, 1], [-0.07, 0.02, 0.6]]) {
+        const pts = [[0.47, -1.34], [0.41, -1.5], [0.32, -1.65], [0.26, -1.8]].map(([x, y]) => [x + dx, y + dy]);
         for (let q = 0; q < pts.length - 1; q++) {
           const [x0, y0] = R(...pts[q]), [x1, y1] = R(...pts[q + 1]);
-          p.push(part(x0, y0, x1, y1, 0.018, 0.012, k));
+          p.push(part(x0, y0, x1, y1, 0.024 - q * 0.004, 0.02 - q * 0.004, k));
         }
-        for (const [q, tx, ty] of [[1, 0.58, -1.7], [2, 0.5, -1.98], [2, 0.22, -1.96]]) {
-          const [x0, y0] = R(...pts[q]), [x1, y1] = R(tx + dx, ty);
-          p.push(part(x0, y0, x1, y1, 0.012, 0.006, k));
+        for (const [q, tx, ty] of [[0, 0.6, -1.42], [1, 0.53, -1.6], [2, 0.45, -1.77], [3, 0.34, -1.92], [3, 0.15, -1.9]]) {
+          const [x0, y0] = R(...pts[q]), [x1, y1] = R(tx + dx, ty + dy);
+          p.push(part(x0, y0, x1, y1, 0.014, 0.007, k));
         }
       }
       const [ex, ey] = R(0.54, -1.27);
@@ -299,7 +310,7 @@
     },
     doe(ph, look, graze) {
       const s = BODY.stag(ph, look, graze);
-      return { parts: s.parts.filter((q) => q.ra > 0.02 || q.rb > 0.015).map((q) => ({ ...q, ax: q.ax * 0.92, ay: q.ay * 0.92, bx: q.bx * 0.92, by: q.by * 0.92 })), eyes: s.eyes.map(([x, y]) => [x * 0.92, y * 0.92]) };
+      return { parts: s.parts.filter((q) => q.d || q.ra > 0.02 || q.rb > 0.015).map((q) => ({ ...q, ax: q.ax * 0.92, ay: q.ay * 0.92, bx: q.bx * 0.92, by: q.by * 0.92 })), eyes: s.eyes.map(([x, y]) => [x * 0.92, y * 0.92]) };
     },
     fox(ph, look) {
       const p = [];
@@ -316,34 +327,71 @@
       p.push(part(0.36, -0.68 + bob, 0.33, -0.84 + bob, 0.04, 0.006), part(0.44, -0.68 + bob, 0.46, -0.83 + bob, 0.04, 0.006, 0.7));
       return { parts: p, eyes: [[0.48, -0.65 + bob]] };
     },
+    // A hop in four beats: crouch, push off with the long hind feet, reach forward in the air, land on the front paws.
     rabbit(ph) {
-      const hop = Math.max(0, Math.sin(ph)) * 0.18;
+      const u = (((ph / TAU) % 1) + 1) % 1;
+      let y = 0, tilt = 0, back = 0, front = 0, squash = 0;
+      if (u < 0.15) squash = Math.sin((u / 0.15) * Math.PI) * 0.6;
+      else if (u < 0.6) {
+        const a = (u - 0.15) / 0.45;
+        y = 4 * a * (1 - a) * 0.2;
+        back = 1 - smooth(0.2, 0.8, a);
+        front = smooth(0.35, 0.9, a);
+        tilt = mix(-0.32, 0.26, smooth(0, 1, a));
+      } else if (u < 0.78) {
+        const a = (u - 0.6) / 0.18;
+        front = 1 - smooth(0.2, 1, a);
+        tilt = mix(0.26, 0, smooth(0, 1, a));
+        squash = Math.sin(a * Math.PI) * 0.4;
+      }
+      const cx = -0.04, cy = -0.22;
+      const T = (x, z) => { const [rx, ry] = rot(x, z + squash * 0.03 * (z < -0.1 ? 1 : 0), cx, cy, tilt); return [rx, ry - y]; };
+      const pp = (ax, ay, bx, by, ra, rb, k) => { const [x0, y0] = T(ax, ay), [x1, y1] = T(bx, by); return part(x0, y0, x1, y1, ra, rb, k); };
+      const ln = (ax, ay, bx, by, k) => { const [x0, y0] = T(ax, ay), [x1, y1] = T(bx, by); return line(x0, y0, x1, y1, k); };
       const p = [];
-      p.push(part(-0.16, -0.2 - hop, 0.06, -0.26 - hop, 0.15, 0.13));
-      p.push(part(-0.2, -0.1 - hop * 0.5, -0.04, -0.03 - hop * 0.2, 0.08, 0.04));
-      p.push(part(0.12, -0.36 - hop, 0.24, -0.38 - hop, 0.1, 0.07));
-      p.push(part(0.12, -0.45 - hop, 0.04, -0.78 - hop, 0.04, 0.025, 0.7), part(0.17, -0.45 - hop, 0.14, -0.8 - hop, 0.045, 0.028));
-      p.push(part(0.1, -0.16 - hop, 0.14, -0.02 - hop * 0.3, 0.035, 0.03));
-      p.push(part(-0.3, -0.24 - hop, -0.32, -0.26 - hop, 0.06, 0.05));
-      return { parts: p, eyes: [[0.2, -0.4 - hop]] };
+      const ear = back * 0.1 + y * 0.3;
+      // far legs first, dimmer
+      p.push(pp(0.1, -0.18, mix(0.12, 0.26, front), mix(-0.02, -0.1, front), 0.028, 0.022, 0.55));
+      p.push(pp(-0.16, -0.18, mix(-0.07, -0.3, back), mix(-0.06, -0.08, back), 0.085, 0.05, 0.55));
+      p.push(pp(-0.16, -0.2, 0.08, -0.27, 0.16, 0.12));
+      p.push(pp(0.17, -0.37, 0.27, -0.35, 0.1, 0.06));
+      p.push(pp(0.27, -0.35, 0.29, -0.34, 0.02, 0.02, 0.9));
+      p.push(pp(0.14, -0.45, 0.06 - ear, -0.78 + ear * 0.3, 0.04, 0.024, 0.7), pp(0.19, -0.45, 0.15 - ear, -0.8 + ear * 0.3, 0.045, 0.026));
+      p.push(ln(0.175, -0.5, 0.155 - ear, -0.74 + ear * 0.3, 0.8));
+      // near legs: the long hind foot pushes back on take-off, the front paws reach for the ground on landing
+      const hx = mix(-0.06, -0.3, back), hy = mix(-0.05, -0.1, back);
+      p.push(pp(-0.13, -0.2, hx, hy, 0.09, 0.05));
+      p.push(pp(hx, hy, hx + mix(0.15, -0.12, back), mix(-0.01, -0.05, back), 0.035, 0.025));
+      p.push(pp(0.12, -0.18, mix(0.14, 0.3, front), mix(-0.02, -0.1, front), 0.03, 0.024));
+      p.push(pp(-0.32, -0.26, -0.34, -0.28, 0.06, 0.05));
+      return { parts: p, eyes: [T(0.21, -0.4)] };
     },
     owl(ph, look) {
-      const p = [];
-      p.push(part(-0.15, -0.44, -0.12, -0.1, 0.07, 0.04, 0.75), part(0.15, -0.44, 0.12, -0.1, 0.07, 0.04, 0.75));
-      p.push(part(0, -0.14, 0, -0.44, 0.16, 0.19));
-      p.push(part(0, -0.6, 0, -0.62, 0.16, 0.16));
-      p.push(part(-0.09 + look * 0.03, -0.72, -0.13 + look * 0.03, -0.8, 0.03, 0.006), part(0.09 + look * 0.03, -0.72, 0.13 + look * 0.03, -0.8, 0.03, 0.006));
+      const p = [], lx = look * 0.035;
+      // folded wings with their feather edges, an egg-shaped body with a speckled chest, then the round head
+      p.push(part(-0.16, -0.48, -0.15, -0.1, 0.075, 0.045, 0.75), part(0.16, -0.48, 0.15, -0.1, 0.075, 0.045, 0.75));
+      p.push(part(0, -0.2, 0, -0.24, 0.19, 0.19));
+      p.push(part(0, -0.34, 0, -0.46, 0.16, 0.14));
+      for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) p.push(line(sx * 0.21, -0.42 + k * 0.11, sx * 0.15, -0.36 + k * 0.11, 0.45));
+      for (let k = 0; k < 3; k++) for (const ox of [-0.06, 0.06]) { const yy = -0.38 + k * 0.08 + (ox > 0 ? 0.04 : 0); p.push(line(ox - 0.025, yy - 0.015, ox, yy, 0.45), line(ox, yy, ox + 0.025, yy - 0.015, 0.45)); }
+      p.push(part(0.02, -0.08, 0.02, 0.06, 0.035, 0.02, 0.7));
+      p.push(part(lx, -0.62, lx, -0.64, 0.16, 0.16));
+      // the V of the facial disc, a small beak and the ear tufts
+      p.push(line(-0.13 + lx, -0.73, lx, -0.61, 0.4), line(lx, -0.61, 0.13 + lx, -0.73, 0.4));
+      p.push(part(lx, -0.6, lx, -0.55, 0.018, 0.006));
+      for (const sx of [-1, 1]) p.push(part(sx * 0.09 + lx, -0.74, sx * 0.14 + lx, -0.85, 0.035, 0.006));
       p.push(part(-0.05, -0.02, 0.05, -0.02, 0.025, 0.025, 0.75));
-      return { parts: p, eyes: [[-0.065 + look * 0.04, -0.62], [0.065 + look * 0.04, -0.62]] };
+      return { parts: p, eyes: [[-0.065 + lx, -0.64], [0.065 + lx, -0.64]] };
     },
   };
 
-  const SPIRIT_COL = {
-    stag: [200, 244, 255],
-    doe: [214, 236, 255],
-    fox: [255, 214, 160],
-    rabbit: [236, 232, 255],
-    owl: [206, 210, 246],
+  // Each spirit glows in a family of colours, mixed through its body.
+  const SPIRIT_COLS = {
+    stag: [[170, 236, 255], [120, 190, 255], [196, 160, 255], [120, 255, 214], [255, 255, 255], [255, 210, 240]],
+    doe: [[255, 200, 230], [214, 196, 255], [255, 226, 200], [255, 255, 255]],
+    fox: [[255, 196, 120], [255, 160, 100], [255, 226, 160], [255, 140, 150]],
+    rabbit: [[180, 255, 214], [255, 210, 236], [220, 220, 255], [255, 255, 255]],
+    owl: [[190, 176, 255], [160, 206, 255], [255, 200, 250], [230, 226, 255]],
   };
   const NAMES = { stag: "Stag spirit", doe: "Doe spirit", fox: "Fox spirit", rabbit: "Rabbit spirit", owl: "Owl spirit" };
 
@@ -360,7 +408,7 @@
     // The owl sits on a short branch off a trunk on the left of the clearing.
     const ly = layers[3], tree = ly.trees.reduce((a, b) => (Math.abs(b.x - W * 0.3) < Math.abs(a.x - W * 0.3) ? b : a));
     const perch = H * 0.4;
-    spirits.push({ kind: "owl", layer: 3, x: tree.x + tree.lean * (groundY(3, tree.x) - perch) + tree.w * 1.6, size: 0.36, speed: 0, dir: -1, ph: 0, state: "perch", timer: 5, look: 0, graze: 0, stir: 0, particles: null, perch, tree });
+    spirits.push({ kind: "owl", layer: 3, x: tree.x + tree.lean * (groundY(3, tree.x) - perch) + tree.w * 1.6, size: 0.5, speed: 0, dir: -1, ph: 0, state: "perch", timer: 5, look: 0, graze: 0, stir: 0, particles: null, perch, tree });
   }
   const unitOf = (s) => Math.min(H * 0.2, W * (H > W * 1.3 ? 0.34 : 0.24)) * s.size * (s.layer === 2 ? 0.75 : 1);
   function spiritY(s) { return s.perch !== null ? s.perch : groundY(s.layer, s.x) + unitOf(s) * 0.02; }
@@ -374,8 +422,9 @@
     }
     const u = unitOf(s);
     if (s.state === "walk") {
-      s.x += s.dir * s.speed * u * dt * 2.2;
-      s.ph += dt * (s.kind === "rabbit" ? 5 : 2.4);
+      const air = s.kind === "rabbit" ? ((((s.ph / TAU) % 1) + 1) % 1 > 0.15 && (((s.ph / TAU) % 1) + 1) % 1 < 0.7 ? 2.4 : 0) : 1;
+      s.x += s.dir * s.speed * u * dt * 2.2 * air;
+      s.ph += dt * (s.kind === "rabbit" ? 4.2 : 2.4);
       if (s.x < W * 0.06 && s.dir < 0) s.dir = 1;
       if (s.x > W * 0.94 && s.dir > 0) s.dir = -1;
       // Spirits on the same ground give each other room instead of walking through one another.
@@ -386,7 +435,8 @@
       }
       if (s.timer < 0) { s.state = "rest"; s.timer = 3 + Math.random() * 5; s.grazes = s.kind !== "rabbit" && Math.random() < 0.6; }
     } else {
-      if (s.kind === "rabbit") s.ph += (Math.round(s.ph / Math.PI) * Math.PI - s.ph) * Math.min(1, dt * 4);
+      // A rabbit finishes the hop it is in and sits until it moves on.
+      if (s.kind === "rabbit" && ((((s.ph / TAU) % 1) + 1) % 1) < 0.85) s.ph += dt * 4.2;
       if (s.timer < 0) { s.state = "walk"; s.timer = 6 + Math.random() * 10; if (Math.random() < 0.35) s.dir *= -1; }
     }
     const wantGraze = s.state === "rest" && s.grazes ? 1 : 0;
@@ -418,39 +468,42 @@
 
   // Each spirit is a cloud of motes pinned to its limbs, which scatter at a touch and drift home.
   function drawSpiritParticles(s, sh, t, dt) {
-    const col = SPIRIT_COL[s.kind], str = L.spirit;
+    const cols = SPIRIT_COLS[s.kind], str = L.spirit;
     if (!s.particles) {
       s.particles = [];
-      const f = BODY[s.kind](0, 0, 0);
+      const f = BODY[s.kind](0, 0, 0), dens = W < 700 ? 900 : 1500;
       for (let pi = 0; pi < f.parts.length; pi++) {
         const q = f.parts[pi], len = Math.hypot(q.bx - q.ax, q.by - q.ay), area = len * (q.ra + q.rb) + q.ra * q.ra * 3;
-        const n = Math.max(3, Math.round(area * (W < 700 ? 900 : 1500)));
-        for (let k = 0; k < n; k++) s.particles.push({ pi, v: Math.random(), s: (Math.random() * 2 - 1) * Math.sqrt(Math.random()), ox: 0, oy: 0, vx: 0, vy: 0, tw: Math.random() * TAU, sz: 0.6 + Math.random() });
+        // Lines get a row of points along them; bodies a cloud filling them.
+        const n = q.d ? Math.max(3, Math.round(len * dens * 0.045)) : Math.max(3, Math.round(area * dens));
+        for (let k = 0; k < n; k++) {
+          const col = mixc(cols[(Math.random() * cols.length) | 0], [255, 255, 255], q.d ? 0.35 : 0.05);
+          const a = Math.random() * TAU, rho = q.d ? Math.random() * 0.3 : (Math.random() + Math.random()) * 0.55;
+          s.particles.push({ pi, v: q.d ? (k + Math.random()) / n : Math.random(), s: Math.cos(a) * rho, e: Math.sin(a) * rho, ox: 0, oy: 0, vx: 0, vy: 0, tw: Math.random() * TAU, sz: q.d ? 0.5 + Math.random() * 0.3 : 0.6 + Math.random(), col, d: q.d });
+        }
       }
     }
     ctx.save();
     ctx.globalCompositeOperation = L.night ? "lighter" : "screen";
-    ctx.fillStyle = rgba(col, 0.06 * str);
-    ctx.beginPath();
-    for (const q of sh.parts) capsulePath(ctx, q, sh.u * 0.02);
-    ctx.fill();
     const r0 = Math.max(1.6, sh.u * 0.02);
     for (const p of s.particles) {
       const q = sh.parts[p.pi];
       if (!q) continue;
       const dx = q.bx - q.ax, dy = q.by - q.ay, len = Math.hypot(dx, dy) || 1;
-      const r = mix(q.ra, q.rb, p.v) * p.s;
-      const x0 = q.ax + dx * p.v - (dy / len) * r, y0 = q.ay + dy * p.v + (dx / len) * r;
+      // A point inside the capsule: along the bone, then out to the side and along it by up to the radius,
+      // so round ends (a head, a rump) fill as discs rather than flat bars.
+      const rr = p.d ? Math.max(q.ra, sh.u * 0.008) : mix(q.ra, q.rb, p.v), ux = dx / len, uy = dy / len;
+      const x0 = q.ax + dx * p.v + (-uy * p.s + ux * p.e) * rr, y0 = q.ay + dy * p.v + (ux * p.s + uy * p.e) * rr;
       p.vx += -p.ox * 2 * dt - p.vx * 1.6 * dt;
       p.vy += -p.oy * 2 * dt - p.vy * 1.6 * dt - 4 * dt;
       p.ox += p.vx * dt;
       p.oy += p.vy * dt;
       const tw = 0.55 + 0.45 * Math.sin(t * 0.002 + p.tw);
-      dot(x0 + p.ox, y0 + p.oy, r0 * p.sz, mixc(col, [255, 255, 255], 0.3), 0.55 * tw * q.k * str);
+      dot(x0 + p.ox, y0 + p.oy, r0 * p.sz, p.col, (p.d ? 0.5 : 0.55) * tw * q.k * str);
     }
-    ctx.globalAlpha = 1;
-    for (const [x, y] of sh.eyes) dot(x, y, sh.u * 0.05, [255, 255, 255], 0.8 * str);
+    for (const [x, y] of sh.eyes) dot(x, y, sh.u * (s.kind === "owl" ? 0.04 : 0.035), s.kind === "owl" ? [255, 214, 130] : [255, 255, 255], 0.8 * str);
     ctx.restore();
+    ctx.globalAlpha = 1;
   }
   function scatter(s, x, y) {
     if (!s.particles) return;
@@ -464,10 +517,14 @@
   /* ── motes, flowers, mushrooms, mist ──────────────────────────────── */
 
   const motes = [];
+  // The specks of light come in several colours after dark.
+  const MOTE_COLS = [[210, 255, 200], [170, 226, 255], [255, 200, 236], [255, 230, 160], [206, 186, 255]];
+  const MOTE_SUMMER = [[236, 255, 150], [210, 255, 180], [255, 236, 150], [170, 255, 220]];
+  const MOTE_WINTER = [[210, 228, 255], [190, 210, 255], [230, 214, 255], [200, 240, 255]];
   function placeMotes() {
     motes.length = 0;
     const n = (W < 700 ? 46 : 80) * (season === "summer" ? 1.5 : 1);
-    for (let k = 0; k < n; k++) motes.push({ x: Math.random() * W, y: H * (0.2 + Math.random() * 0.7), z: 0.4 + Math.random() * 0.6, ph: Math.random() * TAU, vx: 0, vy: 0, seed: Math.random() * 50 });
+    for (let k = 0; k < n; k++) motes.push({ x: Math.random() * W, y: H * (0.2 + Math.random() * 0.7), z: 0.4 + Math.random() * 0.6, ph: Math.random() * TAU, vx: 0, vy: 0, seed: Math.random() * 50, c: (Math.random() * 20) | 0 });
   }
   const flowers = [];
   const mushrooms = [];
@@ -476,7 +533,9 @@
     const R = rng(91);
     for (let k = 0; k < (W < 700 ? 9 : 16); k++) {
       const layer = R() < 0.5 ? 3 : 2, x = R() * W;
-      mushrooms.push({ layer, x, s: U * (layer === 3 ? 0.012 : 0.008) * (0.7 + R() * 0.6), ph: R() * TAU, col: R() < 0.6 ? [150, 255, 220] : [190, 200, 255] });
+      const col = [[120, 255, 210], [170, 190, 255], [255, 170, 230], [255, 214, 130]][(R() * 4) | 0];
+      const n = 1 + ((R() * 3) | 0);
+      for (let c = 0; c < n; c++) mushrooms.push({ layer, x: x + (c - (n - 1) / 2) * U * 0.012 * (0.8 + R() * 0.4), s: U * (layer === 3 ? 0.013 : 0.009) * (c === 0 ? 1 : 0.55 + R() * 0.3), ph: R() * TAU, col });
     }
   }
   const mists = [];
@@ -603,11 +662,20 @@
         ctx.globalAlpha = 1;
         ctx.fillStyle = rgba(mixc(L.tree, m.col, 0.25));
         ctx.fillRect(m.x - m.s * 0.12, gy - m.s, m.s * 0.24, m.s);
-        ctx.fillStyle = rgba(mixc(L.tree, m.col, L.night ? 0.7 : 0.35));
+        ctx.fillStyle = rgba(mixc(L.tree, m.col, L.night ? 0.95 : 0.35));
         ctx.beginPath();
         ctx.ellipse(m.x, gy - m.s, m.s * 0.55, m.s * 0.32, 0, Math.PI, TAU);
         ctx.fill();
-        if (L.night) dot(m.x, gy - m.s * 0.9, m.s * 1.6, m.col, 0.18 * pulse);
+        // After dark the caps light up: a bright cap, a soft halo and a glow on the ground below.
+        if (L.night || L.spirit > 0.7) {
+          const k = L.night ? 1 : 0.5;
+          ctx.save();
+          ctx.globalCompositeOperation = "lighter";
+          dot(m.x, gy, m.s * 2.4, m.col, 0.2 * pulse * k);
+          dot(m.x, gy - m.s, m.s * 2.2, m.col, 0.4 * pulse * k);
+          dot(m.x, gy - m.s * 1.05, m.s * 0.7, mixc(m.col, [255, 255, 255], 0.5), 0.9 * pulse * k);
+          ctx.restore();
+        }
       }
       drawFlowers(i, t);
       for (const s of spirits) {
@@ -668,7 +736,7 @@
   function drawMotes(t, dt) {
     ctx.save();
     ctx.globalCompositeOperation = L.night ? "lighter" : "screen";
-    const col = !L.night ? [255, 250, 225] : season === "summer" ? [236, 255, 150] : season === "winter" ? [210, 228, 255] : [210, 255, 200];
+    const night = L.night ? (season === "summer" ? MOTE_SUMMER : season === "winter" ? MOTE_WINTER : MOTE_COLS) : null;
     for (const m of motes) {
       const n = m.seed;
       m.vx += noise1(t * 0.0002 + n, 1) * 6 * dt;
@@ -689,7 +757,7 @@
       if (m.x < -20) m.x = W + 20; if (m.x > W + 20) m.x = -20;
       if (m.y < H * 0.1) m.y = H * 0.95; if (m.y > H * 0.98) m.y = H * 0.12;
       const tw = 0.5 + 0.5 * Math.sin(t * 0.0015 + m.ph);
-      dot(m.x, m.y, (2 + 3 * m.z) * (W < 700 ? 0.9 : 1), col, (L.night ? 0.55 : 0.3) * tw);
+      dot(m.x, m.y, (2 + 3 * m.z) * (W < 700 ? 0.9 : 1), night ? night[m.c % night.length] : [255, 250, 225], (L.night ? 0.55 : 0.3) * tw);
     }
     ctx.restore();
   }
