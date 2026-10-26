@@ -311,8 +311,8 @@
           return put(MANTA.white, l, 1, "");
         return put(mixc(MANTA.back, MANTA.edge, smooth(0.6, 1, t)), l, 1, t > 0.75 ? lineGlyph(...headDir(-0.3, hy < 0 ? -1 : 1)) : "");
       }
-      // Short whip tail.
-      if (s > 0.85 && s < 1.45 && Math.abs(a) < 0.008 + 0.01 * (1.45 - s)) return put(MANTA.back, 0.8, 1, lineGlyph(F.tx, F.ty));
+      // Whip tail, rooted inside the back of the body so it never floats free when the spine bends.
+      if (s > 0.4 && s < 1.45 && Math.abs(a) < 0.006 + 0.024 * (1 - smooth(0.4, 1.45, s))) return put(MANTA.back, 0.8, 1, lineGlyph(F.tx, F.ty));
       return false;
     },
   };
