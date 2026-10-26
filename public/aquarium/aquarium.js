@@ -1059,7 +1059,6 @@
       this.ripples = [];
       this.pointer = { x: -9999, y: -9999, on: false };
       this.t = 0;
-      this.mode = "auto";
       this.night = 0;
       this.season = "summer";
       this.warm = 0;
@@ -1342,20 +1341,18 @@
     const tank = new Tank(canvas);
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     const caption = document.getElementById("aq-caption");
-    const chips = [...document.querySelectorAll("[data-mode]")];
     const timeEl = document.getElementById("aq-time");
     const phaseEl = document.getElementById("aq-phase");
     const slider = document.getElementById("aq-hour");
-    const MODES = ["auto", "day", "night"];
-    let mode = "auto";
-    try { mode = localStorage.getItem("aq-mode") || "auto"; } catch (e) {}
-    if (!MODES.includes(mode)) mode = "auto";
-    // A scrubbed hour overrides the clock until Auto is pressed again. Koi Valley passes its season,
-    // and its hour when someone was scrubbing the day there, so The Pond opens looking the same.
+    // The day works like Koi Valley's: it follows the clock until someone scrubs, and 50 seconds after the
+    // last scrub it time-lapses forward to the real time and follows the clock again. Koi Valley passes its
+    // season, and its hour when someone was scrubbing the day there, so The Pond opens looking the same.
     const params = new URLSearchParams(location.search);
+    const nowHour = () => { const d = new Date(); return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600; };
     const hourParam = parseFloat(params.get("hour"));
-    let scrub = hourParam >= 0 && hourParam < 24 ? hourParam : null;
-    if (scrub !== null) mode = "auto";
+    let live = !(hourParam >= 0 && hourParam < 24);
+    let hourNow = live ? nowHour() : hourParam;
+    let lastScrub = performance.now(), tween = null;
     const SEASONS = ["spring", "summer", "autumn", "winter"];
     tank.season = SEASONS.includes(params.get("season")) ? params.get("season") : seasonFromDate(new Date());
     const seasonChips = [...document.querySelectorAll("[data-season]")];
@@ -1370,43 +1367,57 @@
       tank.ripples.length = 0;
       syncSeason();
     });
-    const nowHour = () => { const d = new Date(); return d.getHours() + d.getMinutes() / 60; };
-    const hour = () => (scrub !== null ? scrub : nowHour());
-    const sky = () => (mode === "day" ? skyAt(12) : mode === "night" ? skyAt(23) : skyAt(hour()));
-    const targetNight = () => sky().night;
-    tank.night = targetNight();
+    const sky = () => skyAt(hourNow);
+    tank.night = sky().night;
     tank.warm = sky().warm; tank.warmCol = sky().col; tank.warmTop = sky().top;
     // The panel reads like Koi Valley's clock: the time, then what the light is doing.
-    function phaseName() {
-      if (mode !== "auto") return mode === "day" ? "Day" : "Night";
-      return phaseOf(hour());
-    }
-    function syncMode() {
-      for (const b of chips) b.setAttribute("aria-pressed", b.dataset.mode === mode && scrub === null ? "true" : "false");
-      const h = mode === "auto" ? hour() : nowHour();
-      const hh = Math.floor(h) % 24, mm = Math.floor((h - Math.floor(h)) * 60);
+    function setHour(h, fromSlider) {
+      hourNow = ((h % 24) + 24) % 24;
+      const hh = Math.floor(hourNow), mm = Math.floor((hourNow - hh) * 60);
       if (timeEl) timeEl.textContent = String(hh).padStart(2, "0") + ":" + String(mm).padStart(2, "0");
-      if (phaseEl) phaseEl.textContent = phaseName();
-      if (slider && document.activeElement !== slider) slider.value = String(h);
-      document.documentElement.dataset.night = targetNight() > 0.5 ? "1" : "0";
+      if (phaseEl) phaseEl.textContent = phaseOf(hourNow);
+      if (slider && !fromSlider) slider.value = hourNow.toFixed(2);
+      document.documentElement.dataset.night = sky().night > 0.5 ? "1" : "0";
     }
-    syncMode();
-    setInterval(syncMode, 15000);
-    for (const b of chips) b.addEventListener("click", (e) => {
-      e.stopPropagation();
-      mode = b.dataset.mode;
-      scrub = null;
-      try { localStorage.setItem("aq-mode", mode); } catch (err) {}
-      syncMode();
-    });
-    if (slider) slider.addEventListener("input", () => {
-      scrub = parseFloat(slider.value);
-      mode = "auto";
+    setHour(hourNow);
+    function scrubTo(h) {
+      live = false; tween = null; lastScrub = performance.now();
+      setHour(h);
       // Follow the slider straight away rather than easing, so scrubbing feels direct.
       const sk = sky();
       tank.night = sk.night; tank.warm = sk.warm; tank.warmCol = sk.col; tank.warmTop = sk.top;
-      syncMode();
-    });
+    }
+    if (slider) {
+      slider.addEventListener("input", () => scrubTo(+slider.value));
+      // Endless scrub: dragging past either end wraps around and keeps going.
+      let drag = null;
+      slider.addEventListener("pointerdown", (e) => {
+        e.preventDefault(); slider.focus(); slider.setPointerCapture(e.pointerId);
+        const r = slider.getBoundingClientRect();
+        drag = { id: e.pointerId, x: e.clientX, w: r.width, h: clamp((e.clientX - r.left) / r.width, 0, 1) * 24 };
+        scrubTo(drag.h);
+      });
+      slider.addEventListener("pointermove", (e) => { if (drag && e.pointerId === drag.id) scrubTo(drag.h + ((e.clientX - drag.x) / drag.w) * 24); });
+      const end = (e) => { if (drag && e.pointerId === drag.id) drag = null; };
+      slider.addEventListener("pointerup", end); slider.addEventListener("pointercancel", end);
+      slider.addEventListener("keydown", (e) => {
+        const step = e.shiftKey ? 1 : 0.25;
+        if (e.key === "ArrowRight" || e.key === "ArrowUp") { e.preventDefault(); scrubTo(hourNow + step); }
+        else if (e.key === "ArrowLeft" || e.key === "ArrowDown") { e.preventDefault(); scrubTo(hourNow - step); }
+      });
+    }
+    let clockTick = 0;
+    function stepClock(now, dt) {
+      if (tween) {
+        const p = clamp((now - tween.t0) / tween.dur, 0, 1), e = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
+        setHour(tween.from + tween.d * e);
+        if (p >= 1) { tween = null; live = true; }
+      } else if (live && (clockTick += dt) > 20) { clockTick = 0; setHour(nowHour()); }
+      else if (!live && now - lastScrub > 50000) {
+        const ahead = (((nowHour() - hourNow) % 24) + 24) % 24;
+        tween = { from: hourNow, d: ahead, t0: now, dur: reduced.matches ? 1 : clamp(ahead * 450, 2500, 9000) };
+      }
+    }
 
     let captionTimer = 0;
     function showCaption(c, x, y) {
@@ -1447,6 +1458,7 @@
       if (acc < 1 / 31) return;
       const step = acc * (reduced.matches ? 0.35 : 1);
       acc = 0;
+      stepClock(now, dt);
       const sk = sky();
       tank.night += clamp(sk.night - tank.night, -step * 0.8, step * 0.8);
       tank.warm += clamp(sk.warm - tank.warm, -step * 0.8, step * 0.8);

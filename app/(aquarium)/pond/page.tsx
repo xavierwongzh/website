@@ -25,12 +25,6 @@ export default function Pond() {
           <button className="chip" type="button" data-season="autumn" aria-pressed="false">Autumn</button>
           <button className="chip" type="button" data-season="winter" aria-pressed="false">Winter</button>
         </div>
-        <span className="label">Light</span>
-        <div className="btns" role="group" aria-label="Light">
-          <button className="chip" type="button" data-mode="auto" aria-pressed="true">Auto</button>
-          <button className="chip" type="button" data-mode="day" aria-pressed="false">Day</button>
-          <button className="chip" type="button" data-mode="night" aria-pressed="false">Night</button>
-        </div>
         {/* Koi Valley has its own root layout, so this is a full page load on purpose. */}
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a className="chip back" href="/">&larr; Back to Koi Valley</a>
