@@ -8,7 +8,7 @@ export default function Aquarium() {
       <canvas id="aquarium" aria-label="An ASCII aquarium with sharks, rays, a turtle, jellyfish and floating flowers" role="img" />
       <header className="aq-head">
         <h1>Aquarium</h1>
-        <p>Tap the water. Tap the pufferfish.</p>
+        <p>Tap the water. Tap a creature to see its name.</p>
       </header>
       <nav className="aq-nav">
         {/* Koi Valley has its own root layout, so this is a full page load on purpose. */}

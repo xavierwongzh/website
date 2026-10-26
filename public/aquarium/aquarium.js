@@ -411,39 +411,6 @@
     },
   };
 
-  /* Pufferfish: round, spotted, puffs up into a spiky ball when startled. */
-  const PUFF = { back: [196, 168, 108], spot: [96, 70, 40], belly: [232, 226, 206], eye: [20, 20, 20] };
-  const puffer = {
-    len: 1,
-    reach: 0.45,
-    shape(c) {
-      const { s, a, hx, hy } = F;
-      const p = c.puff || 0;
-      const R = 0.24 * (1 + 0.55 * p);
-      const cx = hx + 0.3 * (1 + 0.2 * p);
-      const r = Math.hypot(cx, hy);
-      const ang = Math.atan2(hy, cx);
-      if (p > 0.05 && r > R && r < R + 0.08 * p) {
-        if (Math.abs(fract(ang / TAU * 28) - 0.5) < 0.12) return put(PUFF.back, 0.8, 1, lineGlyph(cx, hy));
-      }
-      if (r < R) {
-        const [nx, ny] = headDir(cx / R * 0.8, hy / R * 0.8);
-        const l = lit(nx, ny);
-        if (Math.abs(Math.abs(hy) - R * 0.62) < 0.035 && Math.abs(cx - R * 0.45) < 0.035) return put(PUFF.eye, 1, 1, "@");
-        const spot = hash2(Math.floor(cx * 30 + 60), Math.floor(hy * 30 + 60)) < 0.22 && r < R * 0.85;
-        return put(spot ? PUFF.spot : PUFF.back, l, 1, spot ? "o" : "");
-      }
-      // Little fins: pectorals that whirr and a fan tail.
-      for (const side of [-1, 1]) {
-        const fx = cx - R * 0.1, fy = hy - side * R;
-        if (Math.abs(fx) < 0.05 && side * fy > 0 && side * fy < 0.07 + 0.02 * Math.sin(c.phase * 3)) return put(PUFF.belly, 0.85, 0.85, "|");
-      }
-      const tx = -(cx + R);
-      if (tx > 0 && tx < 0.2 && Math.abs(hy) < 0.03 + tx * 0.45) return put(PUFF.back, 0.8, 0.9, lineGlyph(-1, hy * 3));
-      return false;
-    },
-  };
-
   /* Lotus on a lily pad, floating on the surface. */
   const LOTUS = { pad: [66, 120, 58], vein: [96, 150, 80], petal: [240, 168, 192], base: [252, 232, 236], heart: [236, 196, 70] };
   const lotus = {
@@ -500,7 +467,7 @@
   /* Bait fish: so small they are drawn as a classic three-glyph fish, ><> or <><, with a silver glint. */
   const baitfish = { sprite: true, len: 0.5, reach: 0, shape: () => false };
 
-  const SPECIES = { baitfish, hammerhead, whaleShark, turtle, stingray, manta, moonJelly, seaNettle, sardine, puffer, lotus, sakura };
+  const SPECIES = { baitfish, hammerhead, whaleShark, turtle, stingray, manta, moonJelly, seaNettle, sardine, lotus, sakura };
 
   /* ── creature state ───────────────────────────────────────────────── */
 
@@ -508,7 +475,7 @@
   function makeCreature(kind, opts) {
     const sp = SPECIES[kind];
     const c = Object.assign(
-      { kind, sp, x: 0, y: 0, heading: 0, L: 100, depth: 0.3, phase: Math.random() * TAU, spin: 0, puff: 0, bend: 0.5 },
+      { kind, sp, x: 0, y: 0, heading: 0, L: 100, depth: 0.3, phase: Math.random() * TAU, spin: 0, bend: 0.5 },
       opts
     );
     c.nodes = new Float32Array(NODES * 2);
@@ -836,7 +803,6 @@
     turtle: { speed: 22, turn: 0.2, shy: 0.4 },
     stingray: { speed: 26, turn: 0.25, shy: 0.6 },
     manta: { speed: 28, turn: 0.18, shy: 0.2 },
-    puffer: { speed: 16, turn: 0.5, shy: 0.5 },
     sardine: { speed: 44, turn: 1.2, shy: 1 },
     moonJelly: { speed: 6, turn: 0.1, shy: 0 },
     seaNettle: { speed: 7, turn: 0.1, shy: 0 },
@@ -846,7 +812,7 @@
   };
   const NAMES = {
     whaleShark: "Whale shark", hammerhead: "Hammerhead", turtle: "Sea turtle", stingray: "Blue-spotted stingray",
-    manta: "Manta ray", puffer: "Pufferfish", sardine: "Sardine", moonJelly: "Moon jellyfish", seaNettle: "Sea nettle",
+    manta: "Manta ray", sardine: "Sardine", moonJelly: "Moon jellyfish", seaNettle: "Sea nettle",
     lotus: "Lotus", sakura: "Cherry blossom", baitfish: "Bait fish",
   };
 
@@ -910,7 +876,6 @@
       this.spawn("turtle", 250, 0.22);
       this.spawn("stingray", 250, 0.72);
       this.spawn("manta", 260, 0.46);
-      this.spawn("puffer", 120, 0.18);
       this.spawn("moonJelly", 150, 0.12, { spin: Math.random() * TAU });
       this.spawn("moonJelly", 110, 0.3, { spin: Math.random() * TAU });
       if (!small) this.spawn("moonJelly", 90, 0.44, { spin: Math.random() * TAU });
@@ -1023,14 +988,6 @@
           const dx = c.x - pointer.x, dy = c.y - pointer.y, d = Math.hypot(dx, dy);
           if (d < c.L * 0.6 + 30) { c.x += (dx / (d || 1)) * 30 * dt; c.y += (dy / (d || 1)) * 30 * dt; if (Math.random() < dt * 2) this.ripple(c.x, c.y, 0.5); }
         }
-        if (c.kind === "puffer" && c.puff > 0) {
-          c.puffTime -= dt;
-          if (c.puffTime < 0) c.puff = Math.max(0, c.puff - dt * 0.4);
-        }
-        if (c.kind === "puffer" && c.puffTarget) {
-          c.puff = Math.min(1, c.puff + dt * 3);
-          if (c.puff >= 1) c.puffTarget = false;
-        }
         if (c.sp.radial) { c.nodes[0] = c.x; c.nodes[1] = c.y; } else this.trail(c);
       }
       for (const rp of this.ripples) rp.age += dt;
@@ -1061,7 +1018,6 @@
     tap(x, y) {
       this.ripple(x, y, 1);
       const c = this.pick(x, y);
-      if (c && c.kind === "puffer") { c.puffTarget = true; c.puffTime = 4; }
       // Everything nearby flinches a little.
       for (const o of this.creatures) {
         const d = Math.hypot(o.x - x, o.y - y);
