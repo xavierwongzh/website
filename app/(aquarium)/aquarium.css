@@ -104,6 +104,23 @@ body {
   justify-content: space-between;
   gap: 10px;
 }
+/* the row is a button so phones can fold the panel into a pill; on desktop it is just the heading */
+.aq-panel button.row {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  cursor: default;
+}
+.aq-panel .more {
+  display: contents;
+}
+.aq-panel .season-now,
+.aq-panel .chev {
+  display: none;
+}
 .aq-panel .time {
   font-family: var(--mono);
   font-size: 22px;
@@ -184,7 +201,7 @@ body {
   opacity: 1;
 }
 
-/* On phones the panel sits at the bottom like Koi Valley's folded clock, so the name has the top to itself. */
+/* On phones the panel folds to a pill at the bottom like Koi Valley's clock, so the name has the top to itself. */
 @media (max-width: 600px) {
   .aq-head p {
     font-size: 11px;
@@ -192,36 +209,59 @@ body {
   .aq-head p.tagline {
     display: none;
   }
+  /* Koi Valley's time panel: a small pill at the bottom that opens into the full panel */
   .aq-panel {
     top: auto;
-    right: auto;
+    left: 16px;
+    right: 16px;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    width: auto;
+    padding: 10px 12px;
+    gap: 6px;
+  }
+  .aq-panel:not(.open) {
     left: 50%;
-    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    right: auto;
     transform: translateX(-50%);
     width: max-content;
-    max-width: calc(100vw - 32px);
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 9px 8px 7px;
-    border-radius: 20px;
+    padding: 8px 14px;
+    border-radius: 999px;
   }
-  .aq-panel input[type="range"] {
-    flex: 1 0 100%;
-    padding: 0 4px;
-    box-sizing: border-box;
-  }
-  .aq-panel .row,
-  .aq-panel .label {
+  .aq-panel:not(.open) .more {
     display: none;
   }
-  .aq-panel .btns .chip {
-    flex: none;
-    padding: 7px 10px;
+  .aq-panel.open .more {
+    display: grid;
+    gap: 6px;
   }
-  .aq-panel .back {
-    padding: 7px 10px;
+  .aq-panel button.row {
+    cursor: pointer;
+    align-items: center;
+    gap: 10px;
+  }
+  .aq-panel:not(.open) .time {
+    font-size: 15px;
+  }
+  .aq-panel:not(.open) .phase {
+    display: none;
+  }
+  .aq-panel:not(.open) .season-now {
+    display: inline;
+    font-size: 14px;
+  }
+  .aq-panel .chev {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-left: 1.5px solid var(--ink-soft);
+    border-top: 1.5px solid var(--ink-soft);
+    transform: translateY(2px) rotate(45deg);
+  }
+  .aq-panel.open .chev {
+    transform: translateY(-2px) rotate(225deg);
+    margin-left: 6px;
+  }
+  .aq-panel.open .row .phase {
+    margin-left: auto;
   }
 }

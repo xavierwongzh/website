@@ -1359,7 +1359,16 @@
     function syncSeason() {
       for (const b of seasonChips) b.setAttribute("aria-pressed", b.dataset.season === tank.season ? "true" : "false");
       document.documentElement.dataset.season = tank.season;
+      if (seasonNow) seasonNow.textContent = tank.season[0].toUpperCase() + tank.season.slice(1);
     }
+    // On phones the panel folds into a pill showing the time and season, like Koi Valley's clock.
+    const panel = document.querySelector(".aq-panel"), toggle = document.getElementById("aq-toggle"), seasonNow = document.getElementById("aq-season");
+    if (panel && toggle) toggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (innerWidth > 600) return;
+      const open = !panel.classList.contains("open");
+      panel.classList.toggle("open", open); toggle.setAttribute("aria-expanded", String(open));
+    });
     syncSeason();
     for (const b of seasonChips) b.addEventListener("click", (e) => {
       e.stopPropagation();
