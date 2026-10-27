@@ -555,12 +555,14 @@
   }
 
   function bloom(x, y) {
-    // Find the nearest ground line under the tap and grow a few flowers of light there.
+    // Find the nearest ground line under the tap and grow a small tight cluster of flowers of light there.
+    // A tap above the farthest ground is in the air, so it only stirs the motes.
     let layer = 3;
+    const inAir = y < groundY(1, x) - H * 0.02;
     for (let i = 1; i < NL - 1; i++) if (y < groundY(i, x) + H * 0.04) { layer = i; break; }
-    const n = 7;
+    const n = inAir ? 0 : 7;
     for (let k = 0; k < n; k++) {
-      const fx = x + (k - (n - 1) / 2) * U * 0.03 * (0.6 + Math.random() * 0.8);
+      const fx = x + (k - (n - 1) / 2) * U * 0.011 * (0.7 + Math.random() * 0.6);
       flowers.push({ x: fx, layer, born: performance.now() + k * 90, h: U * (0.04 + Math.random() * 0.04) * (layer === 3 ? 1 : 0.7), col: [[255, 214, 230], [200, 240, 255], [255, 236, 170]][k % 3], petals: 5 + (k % 2) });
     }
     for (const m of motes) {
