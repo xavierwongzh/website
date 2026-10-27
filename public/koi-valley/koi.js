@@ -572,6 +572,15 @@ function makeBlobs(t) {
   else if (t.kind === "bare") { for (let q = 0; q < 4; q++) B.push([(rnd() - 0.5) * 0.36, 0.5 + rnd() * 0.2, 0.03, pickC(TREE_COL.maple)]); }
   return B;
 }
+function makeTree(x, y, h) {
+  const kind = pickKind(h);
+  const t = { i: x, j: y, h, kind, s: (kind === "bush" ? 0.8 : 0.72) + rnd() * 0.55, lean: (rnd() - 0.5) * 0.1, layers: 3 + (rnd() < 0.4 ? 1 : 0) };
+  t.pcol = pickC(kind === "larch" ? TREE_COL.larch : TREE_COL.pine);
+  t.blobs = makeBlobs(t);
+  t.pcol0 = t.pcol; for (const b of t.blobs) b[5] = b[3];
+  t.crown = (t.blobs.length ? t.blobs.reduce((a, b) => a + b[1], 0) / t.blobs.length : 0.5) * t.s * 2.78;
+  return t;
+}
 const trees = [];
 for (let n = 0; n < 3000 && trees.length < 84; n++) {
   const x = rnd() * N, y = rnd() * N;
@@ -584,13 +593,21 @@ for (let n = 0; n < 3000 && trees.length < 84; n++) {
   const forest = Math.sin(x * 0.7 + 1.3) * Math.cos(y * 0.6 - 0.4) + 0.4 * Math.sin(x * 1.9 + y * 1.1);
   if (forest < 0 && rnd() < 0.9) continue;
   if (trees.some(t => Math.hypot(t.i - x, t.j - y) < 0.62)) continue;
-  const kind = pickKind(h);
-  const t = { i: x, j: y, h, kind, s: (kind === "bush" ? 0.8 : 0.72) + rnd() * 0.55, lean: (rnd() - 0.5) * 0.1, layers: 3 + (rnd() < 0.4 ? 1 : 0) };
-  t.pcol = pickC(kind === "larch" ? TREE_COL.larch : TREE_COL.pine);
-  t.blobs = makeBlobs(t);
-  t.pcol0 = t.pcol; for (const b of t.blobs) b[5] = b[3];
-  t.crown = (t.blobs.length ? t.blobs.reduce((a, b) => a + b[1], 0) / t.blobs.length : 0.5) * t.s * 2.78;
-  trees.push(t);
+  trees.push(makeTree(x, y, h));
+}
+// A thick grove in the wood on the right, where The Forest begins: extra trees packed in among the ones already there.
+// Added after the rest of the wood is made, so every other tree keeps its place.
+const GROVE = { x: 12.25, y: 4.05 };
+GROVE.h = hf(GROVE.x, GROVE.y);
+for (let n = 0, added = 0; n < 600 && added < 14; n++) {
+  const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * 1.35, x = GROVE.x + Math.cos(a) * r, y = GROVE.y + Math.sin(a) * r;
+  if (!insideIsland(x, y, 0.93) || riverInfo(x, y)[0] < 0.75 || MARKS.some(m => Math.hypot(m.i + 0.5 - x, m.j + 0.5 - y) < 1.35)) continue;
+  const h = hf(x, y), gx = hf(x + 0.1, y) - h, gy = hf(x, y + 0.1) - h;
+  if (Math.hypot(gx, gy) * 10 > 1.9 || trees.some(t => Math.hypot(t.i - x, t.j - y) < 0.42)) continue;
+  const t = makeTree(x, y, h);
+  // no bushes here, so the grove reads as tall woods
+  if (t.kind === "bush") continue;
+  trees.push(t); added++;
 }
 
 // per-season foliage; autumn keeps the colours each tree was born with
@@ -1123,6 +1140,14 @@ function goPond() {
   if (!live) q.push("hour=" + hourNow.toFixed(2));
   location.href = "/pond" + (q.length ? "?" + q.join("&") : "");
 }
+// The Forest works out the same season and the live hour on its own, like The Pond.
+function goForest() {
+  const q = [];
+  if (SEASON !== seasonFromDate()) q.push("season=" + SEASON);
+  if (!live) q.push("hour=" + hourNow.toFixed(2));
+  location.href = "/forest" + (q.length ? "?" + q.join("&") : "");
+}
+function groveAt(x, y) { const c = P(GROVE.x, GROVE.y, GROVE.h + 0.8); return Math.hypot(c[0] - x, c[1] - y) < TW * cam.zoom * 0.9 && !occluded(GROVE.x, GROVE.y, GROVE.h + 1); }
 function miniAt(x, y) { const c = P(MINI.x, MINI.y, MINI.h); return Math.hypot(c[0] - x, c[1] - y) < TW * cam.zoom * 0.45 && !occluded(MINI.x, MINI.y, MINI.h + 0.2); }
 function caveAt(x, y) { return CAVE.sx && Math.hypot(CAVE.sx - x, CAVE.sy - y) < TW * 0.5 && !occluded(...CW([0, 0, 0.6])); }
 function visitCave() {
@@ -1871,11 +1896,11 @@ function renderScene(t) {
 
 // ---------- tags (HTML buttons over the scene) ----------
 const tagsEl = document.getElementById("tags");
-const TAGS = [...MARKS.map(m => ({ key: m.key, label: m.label, m })), { key: "projects", label: "Projects", pond: true }, { key: "pond", label: "The Pond", mini: true }];
+const TAGS = [...MARKS.map(m => ({ key: m.key, label: m.label, m })), { key: "projects", label: "Projects", pond: true }, { key: "pond", label: "The Pond", mini: true }, { key: "forest", label: "The Forest", grove: true }];
 for (const t of TAGS) {
   const b = document.createElement("button"); b.className = "tag-btn"; b.textContent = t.label; b.type = "button";
   // The Pond is its own page with its own root layout, so a full page load
-  b.addEventListener("click", e => { e.stopPropagation(); if (t.mini) goPond(); else openPlace(t.key); });
+  b.addEventListener("click", e => { e.stopPropagation(); if (t.mini) goPond(); else if (t.grove) goForest(); else openPlace(t.key); });
   t.el = b; tagsEl.appendChild(b);
 }
 function occluded(x, y, h) {
@@ -1896,6 +1921,10 @@ function placeTags() {
       // over the little pond in front of my desk
       [x, y] = P(MINI.x, MINI.y, MINI.h + 0.9);
       hidden = occluded(MINI.x, MINI.y, MINI.h + 0.2);
+    } else if (t.grove) {
+      // above the thick grove in the wood on the right
+      [x, y] = P(GROVE.x, GROVE.y, GROVE.h + 3.3);
+      hidden = occluded(GROVE.x, GROVE.y, GROVE.h + 1);
     } else if (t.m.topW) {
       [x, y] = P(...t.m.topW);
       hidden = occluded(t.m.i + 0.5, t.m.j + 0.5, t.m.h + 1.1);
@@ -2015,6 +2044,7 @@ function tap(x, y) {
   if (planeAt(x, y)) return launchPlane();
   if (caveAt(x, y)) return visitCave();
   if (miniAt(x, y)) return goPond();
+  if (groveAt(x, y)) return goForest();
   for (const fx of foxes) if (fx.sx && Math.hypot(fx.sx - x, fx.sy - y) < TW * 0.6) { fx.hop = 1; fx.scared = 1.6; foxTarget(fx, true); return; }
   const f = koiAt(x, y); if (f) return openProject(f.p.id);
   const m = markAt(x, y); if (m) return openPlace(m.key);
