@@ -3,11 +3,31 @@ import { Analytics } from "@vercel/analytics/react";
 import { SITE_URL } from "@/lib/siteMetadata";
 import "./forest.css";
 
+const title = "The Forest | Xavier Wong";
+const description =
+  "A misty wood behind Koi Valley where a stag, a doe, a fox, an owl and rabbits wander as spirits made of light. Tap a spirit and it scatters into motes, tap the ground and flowers grow. It follows the time of day and the seasons.";
+// a night shot of the wood, where the spirits show best, used when the /forest link is shared
+const image = { url: "/forest-og.png", width: 1200, height: 630, alt: "The Forest: a stag, a fox, an owl and rabbits made of light in a dark wood at night" };
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "The Forest | Xavier Wong",
-  description: "A dark wood behind Koi Valley where spirits of light wander between the trees: a stag, a fox, an owl and rabbits, with motes that follow your touch.",
-  openGraph: { images: [{ url: "/og.png", width: 1200, height: 630 }] },
+  title,
+  description,
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "/forest",
+    siteName: "Xavier Wong Portfolio",
+    title,
+    description,
+    images: [image],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+    images: [image.url],
+  },
 };
 
 export const viewport: Viewport = {
