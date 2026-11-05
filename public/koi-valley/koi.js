@@ -2097,7 +2097,7 @@ function stepCamera(dt) {
   cam.persp = lerp(cam.persp, tv.persp, k);
   camFocus.amt = lerp(camFocus.amt, camFocus.on ? 1 : 0, 1 - Math.pow(0.02, dt));
   { const g = 1 - Math.pow(0.06, dt); camFocus.x = lerp(camFocus.x, camFocus.tx, g); camFocus.y = lerp(camFocus.y, camFocus.ty, g); camFocus.h = lerp(camFocus.h, camFocus.th, g); }
-  const narrowF = W < 640, fz = 1 + (narrowF ? 0.7 : 0.85) * camFocus.amt;
+  const narrowF = W < 640, fz = 1 + (narrowF ? 2.0 : 1.7) * camFocus.amt; // about 2.7x on desktop, 3x on phones
   cam.zoom = lerp(cam.zoom, tv.zoom * (tv.zoomUser || 1) * fz, k);
   const homing = !(drag && drag.moved) && !pinch && !mpan && !resting;
   if (homing) cam.yaw = holdYaw !== null ? holdYaw : lerp(cam.yaw, homeYaw(cam.yaw), 1 - Math.pow(0.03, dt));
